@@ -220,7 +220,8 @@ function buildShop() {
 function shopCard(def, kind) {
   const owned = kind === 'char' ? progress.ownsChar(def.id) : progress.ownsKart(def.id);
   const card = document.createElement('div');
-  card.className = 'card shop-card' + (owned ? ' owned' : '');
+  const affordable = !owned && progress.coins >= (def.price || 0);
+  card.className = 'card shop-card' + (owned ? ' owned' : (affordable ? ' can-afford' : ''));
   const visual = kind === 'char'
     ? `<div class="swatch" style="background:linear-gradient(160deg,#2a2750,#15132e)">
          <div class="head" style="background:${hex(def.skin)}"></div>
