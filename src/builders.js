@@ -135,6 +135,31 @@ export function buildKart(kartDef) {
     group.add(light);
   }
 
+  // Tail lights (red, glowing) at the back
+  const tailMat = new THREE.MeshStandardMaterial({ color: 0xff2a2a, emissive: 0xff1a1a, emissiveIntensity: 0.8, roughness: 0.4 });
+  for (const sx of [-1, 1]) {
+    const tail = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.08), tailMat);
+    tail.position.set(0.4 * sx, 0.6, -1.18);
+    group.add(tail);
+  }
+
+  // Windshield (tinted, semi-transparent) in front of the seat
+  const windshield = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, 0.4, 0.08),
+    new THREE.MeshStandardMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.5, roughness: 0.1, metalness: 0.3 })
+  );
+  windshield.position.set(0, 0.95, 0.05);
+  windshield.rotation.x = -0.5;
+  group.add(windshield);
+
+  // Number roundel on the nose
+  const roundel = new THREE.Mesh(
+    new THREE.CircleGeometry(0.22, 16),
+    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 })
+  );
+  roundel.position.set(0, 0.62, 1.51);
+  group.add(roundel);
+
   // Seat + steering wheel
   const seat = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.5, 0.7), accentMat);
   seat.position.set(0, 0.78, -0.45);

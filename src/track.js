@@ -38,11 +38,80 @@ export class Track {
     this._buildRoad();
     this._buildCenterLine();
     this._buildFences();
+    this._buildTracksideProps();
     this._buildStartLine();
     this._buildStartGantry();
     this._buildGrandstands();
     this._buildBoostPads();
     this._buildDecorations();
+  }
+
+  // Cones, tire stacks and billboards lining the track to fill it out.
+  _buildTracksideProps() {
+    const rng = mulberry32(0xBADA55 ^ hashStr(this.def.id));
+    const off = this.halfWidth + 2.4;
+
+    // Shared geometries/materials (reused for performance)
+    const coneGeo = new THREE.ConeGeometry(0.5, 1.1, 10);
+    const coneMat = new THREE.MeshStandardMaterial({ color: 0xff7a1a, roughness: 0.6 });
+    const coneBandGeo = new THREE.CylinderGeometry(0.42, 0.46, 0.22, 10);
+    const coneBandMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 });
+    const tireGeo = new THREE.TorusGeometry(0.55, 0.26, 8, 16);
+    const tireMat = new THREE.MeshStandardMaterial({ color: 0x161616, roughness: 0.95 });
+
+    const makeCone = () => {
+      const g = new THREE.Group();
+      const c = new THREE.Mesh(coneGeo, coneMat); c.position.y = 0.55; g.add(c);
+      const band = new THREE.Mesh(coneBandGeo, coneBandMat); band.position.y = 0.6; g.add(band);
+      return g;
+    };
+    const makeTireStack = () => {
+      const g = new THREE.Group();
+      const n = 2 + Math.floor(rng() * 2);
+      for (let i = 0; i < n; i++) {
+        const t = new THREE.Mesh(tireGeo, tireMat);
+        t.rotation.x = Math.PI / 2;
+        t.position.y = 0.28 + i * 0.42;
+        g.add(t);
+      }
+      return g;
+    };
+    const billboardColors = [0xff5a5f, 0x3d8bff, 0x2ec4b6, 0xffd23f, 0xff7ad1, 0x9b5de5];
+    const makeBillboard = () => {
+      const g = new THREE.Group();
+      const postMat = new THREE.MeshStandardMaterial({ color: 0x555a66, roughness: 0.8 });
+      for (const sx of [-1, 1]) {
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 5, 8), postMat);
+        post.position.set(sx * 2, 2.5, 0); g.add(post);
+      }
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(6, 2.6, 0.3),
+        new THREE.MeshStandardMaterial({
+          color: billboardColors[Math.floor(rng() * billboardColors.length)],
+          emissive: 0x111111, roughness: 0.5,
+        })
+      );
+      panel.position.y = 5.2; g.add(panel);
+      return g;
+    };
+
+    // Sprinkle props around the loop, alternating sides.
+    for (let i = 0; i < this.N; i += 9) {
+      const r = rng();
+      const side = (i % 18 === 0) ? 1 : -1;
+      const c = this.samples[i];
+      const n = this.normals[i];
+      const t = this.tangents[i];
+      let prop = null;
+      let dist = off;
+      if (r < 0.5) { prop = makeCone(); dist = off + rng() * 0.6; }
+      else if (r < 0.78) { prop = makeTireStack(); dist = off + 0.5; }
+      else if (r < 0.86) { prop = makeBillboard(); dist = off + 6 + rng() * 4; }
+      if (!prop) continue;
+      prop.position.set(c.x + n.x * dist * side, 0, c.z + n.z * dist * side);
+      prop.rotation.y = Math.atan2(t.x, t.z);
+      this.group.add(prop);
+    }
   }
 
   // Dashed center line down the middle of the road for a livelier track read.

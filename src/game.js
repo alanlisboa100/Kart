@@ -425,22 +425,28 @@ export class Game {
     const fwd = p.forward();
     const speedFactor = Math.min(Math.abs(p.speed) / p.maxSpeed, 1);
     const boosting = p.boostTimer > 0;
-    const dist = 12 + speedFactor * 2.5;
-    const height = 6.5;
+    // Pull back & lower a touch with speed for a grounded, fast feel.
+    const dist = 11.5 + speedFactor * 3.0;
+    const height = 6.2 - speedFactor * 0.6;
     const desired = new THREE.Vector3()
       .copy(p.pos)
       .addScaledVector(fwd, -dist)
       .add(new THREE.Vector3(0, height, 0));
-    const lerp = slow ? 0.04 : 1 - Math.pow(0.0015, dt); // frame-rate independent
+    const lerp = slow ? 0.04 : 1 - Math.pow(0.0022, dt); // smooth, frame-rate independent
     this.camera.position.lerp(desired, lerp);
     this.camTarget.lerp(
       new THREE.Vector3(p.pos.x + fwd.x * 6, p.pos.y + 1.6, p.pos.z + fwd.z * 6),
-      slow ? 0.05 : 1 - Math.pow(0.0008, dt)
+      slow ? 0.05 : 1 - Math.pow(0.0010, dt)
     );
     this.camera.lookAt(this.camTarget);
 
+    // Subtle camera roll into turns/drift for a dynamic, lively feel.
+    const targetRoll = -(p.lean || 0) * 0.6 - (p.visualYaw || 0) * 0.12;
+    this._camRoll = (this._camRoll || 0) + (targetRoll - (this._camRoll || 0)) * (1 - Math.pow(0.02, dt));
+    this.camera.rotation.z = this._camRoll;
+
     // Dynamic FOV: widens with speed and pops on boost for a rush feeling.
-    const targetFov = this.baseFov + speedFactor * 6 + (boosting ? 8 : 0);
+    const targetFov = this.baseFov + speedFactor * 7 + (boosting ? 9 : 0);
     this.fov += (targetFov - this.fov) * (1 - Math.pow(0.02, dt));
     if (Math.abs(this.fov - this.camera.fov) > 0.05) {
       this.camera.fov = this.fov;

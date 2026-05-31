@@ -23,9 +23,9 @@ export class Kart {
     const accelStat = charDef.accel + kartDef.dAccel;
     const handStat = charDef.handling + kartDef.dHandling;
 
-    this.maxSpeed = 46 + speedStat * 1.5;        // top speed (buffed - feels strong)
-    this.accel = 30 + accelStat * 2.2;           // acceleration (snappier launch)
-    this.brakeDecel = 60;
+    this.maxSpeed = 44 + speedStat * 1.4;        // top speed
+    this.accel = 22 + accelStat * 1.8;           // base accel (curve eases it in)
+    this.brakeDecel = 58;
     this.turnRate = 2.15 + handStat * 0.12;      // rad/s
     this.grip = 0.86 + handStat * 0.008;
 
@@ -123,14 +123,22 @@ export class Kart {
     const baseMax = this.maxSpeed * (shrunk ? 0.55 : 1);
 
     // --- Longitudinal ---
+    // Gradual acceleration with a smooth curve: strong pull off the line, then
+    // easing as we approach top speed (asymptotic) so it has real "weight".
     const boosting = this.boostTimer > 0;
     const targetMax = boosting ? baseMax * 1.4 : baseMax;
     if (input.throttle > 0) {
-      this.speed += this.accel * input.throttle * dt;
+      const ratio = THREE.MathUtils.clamp(this.speed / targetMax, 0, 1);
+      // accel fades from 100% near standstill to ~12% near top speed
+      const curve = 1 - ratio * ratio * 0.88;
+      this.speed += this.accel * input.throttle * curve * dt;
+      if (boosting) this.speed += this.accel * 0.4 * dt; // boost overrides the fade
     } else if (input.brake > 0) {
-      this.speed -= this.brakeDecel * input.brake * dt;
+      // Progressive braking: stronger the faster you go, eased near a stop.
+      const b = this.brakeDecel * (0.5 + 0.5 * THREE.MathUtils.clamp(this.speed / this.maxSpeed, 0, 1));
+      this.speed -= b * input.brake * dt;
     } else {
-      // natural drag
+      // natural engine drag (coasting)
       this.speed -= Math.sign(this.speed) * Math.min(Math.abs(this.speed), 14 * dt);
     }
     // clamp
