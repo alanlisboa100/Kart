@@ -264,49 +264,81 @@ export class Track {
     this.group.add(g);
   }
 
-  // Grandstands with a crowd of colorful dots near the start straight.
+  // Grandstands with tiered seating and a dense, colorful crowd.
   _buildGrandstands() {
     const standMat = new THREE.MeshStandardMaterial({ color: 0xcacfda, roughness: 0.9 });
-    const roofMat = new THREE.MeshStandardMaterial({ color: this.theme.curb, roughness: 0.6 });
-    const crowdColors = [0xff5a5f, 0xffd23f, 0x3d8bff, 0x2ec4b6, 0xffffff, 0xff7ad1, 0x9b5de5];
+    const stepMat = new THREE.MeshStandardMaterial({ color: 0x9aa1b2, roughness: 0.95 });
+    const roofMat = new THREE.MeshStandardMaterial({ color: this.theme.curb, roughness: 0.6, metalness: 0.2 });
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 });
+    const crowdColors = [0xff5a5f, 0xffd23f, 0x3d8bff, 0x2ec4b6, 0xffffff, 0xff7ad1, 0x9b5de5, 0xff9f1c, 0x4dd2ff];
+    const crowdGeo = new THREE.SphereGeometry(0.42, 6, 5);
+    const headGeo = new THREE.SphereGeometry(0.26, 6, 5);
+
     const place = (startIdx, side) => {
       const idx = ((startIdx % this.N) + this.N) % this.N;
       const c = this.samples[idx];
       const n = this.normals[idx];
       const t = this.tangents[idx];
-      const off = this.halfWidth + 9;
+      const off = this.halfWidth + 10;
       const bx = c.x + n.x * off * side;
       const bz = c.z + n.z * off * side;
       const heading = Math.atan2(t.x, t.z);
 
       const stand = new THREE.Group();
-      // tiered base
-      const base = new THREE.Mesh(new THREE.BoxGeometry(20, 4, 7), standMat);
-      base.position.y = 2; stand.add(base);
-      const top = new THREE.Mesh(new THREE.BoxGeometry(20, 2.4, 4.5), standMat);
-      top.position.set(0, 5, -1.2); stand.add(top);
-      // roof
-      const roof = new THREE.Mesh(new THREE.BoxGeometry(21, 0.5, 8), roofMat);
-      roof.position.set(0, 7, -0.4); stand.add(roof);
-      // crowd dots
-      const crowdGeo = new THREE.SphereGeometry(0.45, 6, 5);
-      for (let r = 0; r < 3; r++) {
-        for (let cIdx = 0; cIdx < 14; cIdx++) {
-          const m = new THREE.Mesh(crowdGeo, new THREE.MeshStandardMaterial({
-            color: crowdColors[(r * 14 + cIdx) % crowdColors.length], roughness: 0.8,
-          }));
-          m.position.set(-9 + cIdx * 1.4 + (r % 2) * 0.6, 3.4 + r * 1.0, 1.5 - r * 1.2);
-          stand.add(m);
+      const WIDTH = 26;
+      const TIERS = 5;
+
+      // Stepped seating tiers (each higher row set further back)
+      for (let r = 0; r < TIERS; r++) {
+        const step = new THREE.Mesh(new THREE.BoxGeometry(WIDTH, 0.9, 1.7), r % 2 ? stepMat : standMat);
+        step.position.set(0, 1.0 + r * 0.95, 2.6 - r * 1.5);
+        stand.add(step);
+
+        // Crowd on each tier: rows of bodies + heads, colorful
+        const seats = 17;
+        for (let s = 0; s < seats; s++) {
+          const cx = -WIDTH / 2 + 0.9 + s * ((WIDTH - 1.8) / (seats - 1)) + (r % 2) * 0.4;
+          const colBody = crowdColors[(r * 7 + s) % crowdColors.length];
+          const body = new THREE.Mesh(crowdGeo, new THREE.MeshStandardMaterial({ color: colBody, roughness: 0.85 }));
+          const yy = 1.7 + r * 0.95;
+          const zz = 2.6 - r * 1.5;
+          body.position.set(cx, yy, zz);
+          body.scale.set(1, 1.15, 1);
+          stand.add(body);
+          const head = new THREE.Mesh(headGeo, new THREE.MeshStandardMaterial({ color: 0xffd9a8, roughness: 0.85 }));
+          head.position.set(cx, yy + 0.5, zz);
+          stand.add(head);
         }
       }
+
+      // Side walls
+      for (const sx of [-1, 1]) {
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(0.6, 5.5, 9), standMat);
+        wall.position.set(sx * WIDTH / 2, 2.7, -0.5);
+        stand.add(wall);
+      }
+
+      // Canopy roof on poles
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(WIDTH + 2, 0.5, 10), roofMat);
+      roof.position.set(0, 7.4, -1.5);
+      roof.rotation.x = -0.12;
+      stand.add(roof);
+      for (const sx of [-1, 1]) {
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 7.4, 8), poleMat);
+        pole.position.set(sx * (WIDTH / 2 - 1), 3.7, -5);
+        stand.add(pole);
+      }
+
       stand.position.set(bx, 0, bz);
       stand.rotation.y = heading + (side < 0 ? Math.PI : 0);
       this.group.add(stand);
     };
-    // a couple of stands flanking the start straight
+
+    // Stands flanking the start straight + one more down the lap.
     place(8, 1);
     place(8, -1);
-    place(this.N - 26, 1);
+    place(this.N - 30, 1);
+    place(Math.floor(this.N * 0.5), -1);
   }
 
   _buildDecorations() {

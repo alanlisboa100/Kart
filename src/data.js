@@ -6,26 +6,26 @@
 // stats are 0..10 and lightly affect handling/feel
 // ---------------------------------------------------------------------------
 export const CHARACTERS = [
-  { id: 'pip',    name: 'Pip',    skin: 0xffd9a8, shirt: 0xff5a5f, cap: 0xffffff, speed: 5, accel: 7, handling: 8 },
-  { id: 'bubba',  name: 'Bubba',  skin: 0xe8b07a, shirt: 0x3d8bff, cap: 0x1b3a6b, speed: 8, accel: 4, handling: 5 },
-  { id: 'lola',   name: 'Lola',   skin: 0xffcf9e, shirt: 0xff7ad1, cap: 0xfff04d, speed: 6, accel: 6, handling: 7 },
-  { id: 'gizmo',  name: 'Gizmo',  skin: 0xbfe3c9, shirt: 0x33d6a6, cap: 0x0e8f6e, speed: 6, accel: 8, handling: 6 },
-  { id: 'mochi',  name: 'Mochi',  skin: 0xfff2e0, shirt: 0xc77dff, cap: 0x7a3ff2, speed: 5, accel: 6, handling: 9 },
-  { id: 'tank',   name: 'Tank',   skin: 0xd9a066, shirt: 0xff9f1c, cap: 0x9c3b00, speed: 9, accel: 3, handling: 4 },
-  { id: 'zazu',   name: 'Zazu',   skin: 0xffd9a8, shirt: 0x2ec4b6, cap: 0x086375, speed: 7, accel: 6, handling: 6 },
-  { id: 'nimbus', name: 'Nimbus', skin: 0xeaf2ff, shirt: 0x9bb8ff, cap: 0x5b7cff, speed: 6, accel: 7, handling: 7 },
+  { id: 'pip',    name: 'Pip',    skin: 0xffd9a8, shirt: 0xff5a5f, cap: 0xffffff, speed: 5, accel: 7, handling: 8, price: 0 },
+  { id: 'bubba',  name: 'Bubba',  skin: 0xe8b07a, shirt: 0x3d8bff, cap: 0x1b3a6b, speed: 8, accel: 4, handling: 5, price: 300 },
+  { id: 'lola',   name: 'Lola',   skin: 0xffcf9e, shirt: 0xff7ad1, cap: 0xfff04d, speed: 6, accel: 6, handling: 7, price: 300 },
+  { id: 'gizmo',  name: 'Gizmo',  skin: 0xbfe3c9, shirt: 0x33d6a6, cap: 0x0e8f6e, speed: 6, accel: 8, handling: 6, price: 500 },
+  { id: 'mochi',  name: 'Mochi',  skin: 0xfff2e0, shirt: 0xc77dff, cap: 0x7a3ff2, speed: 5, accel: 6, handling: 9, price: 500 },
+  { id: 'tank',   name: 'Tank',   skin: 0xd9a066, shirt: 0xff9f1c, cap: 0x9c3b00, speed: 9, accel: 3, handling: 4, price: 800 },
+  { id: 'zazu',   name: 'Zazu',   skin: 0xffd9a8, shirt: 0x2ec4b6, cap: 0x086375, speed: 7, accel: 6, handling: 6, price: 800 },
+  { id: 'nimbus', name: 'Nimbus', skin: 0xeaf2ff, shirt: 0x9bb8ff, cap: 0x5b7cff, speed: 6, accel: 7, handling: 7, price: 1200 },
 ];
 
 // ---------------------------------------------------------------------------
 // KARTS  (the rides). Stat modifiers stack with the character.
 // ---------------------------------------------------------------------------
 export const KARTS = [
-  { id: 'beep',    name: 'Beep Buggy',      color: 0xff5a5f, accent: 0xffffff, dSpeed: 0,  dAccel: 1,  dHandling: 1 },
-  { id: 'tot',     name: 'Turbo Tot',       color: 0xffd23f, accent: 0xff8c00, dSpeed: 1,  dAccel: 1,  dHandling: 0 },
-  { id: 'chunky',  name: 'Chunky Cruiser',  color: 0x3d8bff, accent: 0x1b3a6b, dSpeed: 2,  dAccel: -1, dHandling: -1 },
-  { id: 'drift',   name: 'Drift King',      color: 0x9b5de5, accent: 0x2b0a4a, dSpeed: 1,  dAccel: 0,  dHandling: 2 },
-  { id: 'cloud',   name: 'Cloud Rider',     color: 0x90e0ef, accent: 0xffffff, dSpeed: 0,  dAccel: 2,  dHandling: 1 },
-  { id: 'bolt',    name: 'Bolt',            color: 0x2ec4b6, accent: 0x0b5d56, dSpeed: 2,  dAccel: 1,  dHandling: -1 },
+  { id: 'beep',    name: 'Beep Buggy',      color: 0xff5a5f, accent: 0xffffff, dSpeed: 0,  dAccel: 1,  dHandling: 1,  price: 0 },
+  { id: 'tot',     name: 'Turbo Tot',       color: 0xffd23f, accent: 0xff8c00, dSpeed: 1,  dAccel: 1,  dHandling: 0,  price: 400 },
+  { id: 'chunky',  name: 'Chunky Cruiser',  color: 0x3d8bff, accent: 0x1b3a6b, dSpeed: 2,  dAccel: -1, dHandling: -1, price: 600 },
+  { id: 'drift',   name: 'Drift King',      color: 0x9b5de5, accent: 0x2b0a4a, dSpeed: 1,  dAccel: 0,  dHandling: 2,  price: 700 },
+  { id: 'cloud',   name: 'Cloud Rider',     color: 0x90e0ef, accent: 0xffffff, dSpeed: 0,  dAccel: 2,  dHandling: 1,  price: 700 },
+  { id: 'bolt',    name: 'Bolt',            color: 0x2ec4b6, accent: 0x0b5d56, dSpeed: 2,  dAccel: 1,  dHandling: -1, price: 1000 },
 ];
 
 // ---------------------------------------------------------------------------
@@ -143,3 +143,19 @@ export const TRACKS = [
 export const getCharacter = (id) => CHARACTERS.find((c) => c.id === id) || CHARACTERS[0];
 export const getKart = (id) => KARTS.find((k) => k.id === id) || KARTS[0];
 export const getTrack = (id) => TRACKS.find((t) => t.id === id) || TRACKS[0];
+
+
+// ---------------------------------------------------------------------------
+// CUPS  (Grand Prix championships - sequences of tracks scored over a season)
+// ---------------------------------------------------------------------------
+export const CUPS = [
+  { id: 'mushroom', name: 'Copa Cogumelo', emoji: '🍄', trackIds: ['meadow', 'sunny', 'lagoon', 'skygarden'] },
+  { id: 'flower',   name: 'Copa Flor',     emoji: '🌸', trackIds: ['frosty', 'canyon', 'harbor'] },
+  { id: 'star',     name: 'Copa Estrela',  emoji: '⭐', trackIds: ['neon', 'volcano', 'rainbow'] },
+];
+
+// Points awarded by finishing position (index 0 = 1st place). 6-kart grid.
+export const GP_POINTS = [15, 11, 8, 5, 3, 1];
+
+export const getCup = (id) => CUPS.find((c) => c.id === id) || CUPS[0];
+export const getCupTracks = (id) => getCup(id).trackIds.map((tid) => getTrack(tid));

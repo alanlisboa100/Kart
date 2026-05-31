@@ -7,66 +7,93 @@ const mat = (color, opts = {}) =>
 // Build a cute rounded buddy (Mii-style) from primitives.
 export function buildCharacter(charDef) {
   const g = new THREE.Group();
+  const hairColor = charDef.cap; // reuse cap color as hair/helmet accent
 
-  // Body (rounded torso)
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 0.32, 6, 12), mat(charDef.shirt));
+  // Torso (slightly tapered, friendly)
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.36, 8, 16), mat(charDef.shirt));
   body.position.y = 0.55;
   g.add(body);
 
-  // Collar
-  const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.36, 0.12, 12), mat(charDef.cap));
+  // Racing collar
+  const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.36, 0.14, 16), mat(charDef.cap));
   collar.position.y = 0.92;
   g.add(collar);
 
-  // Head
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.46, 20, 16), mat(charDef.skin, { rough: 0.85 }));
-  head.position.y = 1.3;
+  // Head (a touch bigger for that cute chibi look)
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 20), mat(charDef.skin, { rough: 0.8 }));
+  head.position.y = 1.36;
   g.add(head);
 
-  // Nose
-  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), mat(charDef.skin, { rough: 0.85 }));
-  nose.position.set(0, 1.26, 0.46);
-  g.add(nose);
-
-  // Cap dome + brim
-  const cap = new THREE.Mesh(
-    new THREE.SphereGeometry(0.49, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.55),
-    mat(charDef.cap)
-  );
-  cap.position.y = 1.36;
-  g.add(cap);
-  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.06, 14, 1, false, 0, Math.PI), mat(charDef.cap));
-  brim.position.set(0, 1.34, 0.34);
-  brim.scale.set(1, 1, 1.4);
-  g.add(brim);
-
-  // Eyes
-  const eyeMat = mat(0x1a1a1a, { rough: 0.3 });
-  const eyeWhiteMat = mat(0xffffff, { rough: 0.4 });
+  // Ears
+  const earMat = mat(charDef.skin, { rough: 0.8 });
   for (const sx of [-1, 1]) {
-    const white = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 10), eyeWhiteMat);
-    white.position.set(0.16 * sx, 1.34, 0.4);
-    white.scale.set(0.8, 1.1, 0.6);
-    g.add(white);
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 10), eyeMat);
-    eye.position.set(0.16 * sx, 1.34, 0.46);
-    g.add(eye);
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 10), earMat);
+    ear.position.set(0.48 * sx, 1.36, 0.02);
+    ear.scale.set(0.6, 1, 0.7);
+    g.add(ear);
   }
 
-  // Smile (thin dark torus arc)
-  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.025, 6, 12, Math.PI), mat(0x7a3b2b, { rough: 0.6 }));
-  smile.position.set(0, 1.18, 0.43);
+  // Helmet (smooth dome) + visor band
+  const helmet = new THREE.Mesh(
+    new THREE.SphereGeometry(0.54, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.62),
+    mat(hairColor, { metal: 0.2, rough: 0.45 })
+  );
+  helmet.position.y = 1.42;
+  g.add(helmet);
+  const band = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.06, 10, 28), mat(0xffffff, { rough: 0.4 }));
+  band.position.y = 1.46;
+  band.rotation.x = Math.PI / 2;
+  g.add(band);
+
+  // Big friendly eyes (white + iris + shine)
+  const eyeWhiteMat = mat(0xffffff, { rough: 0.25 });
+  const irisMat = mat(0x2a2a3a, { rough: 0.2 });
+  const shineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  for (const sx of [-1, 1]) {
+    const white = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 14), eyeWhiteMat);
+    white.position.set(0.18 * sx, 1.4, 0.42);
+    white.scale.set(0.85, 1.15, 0.6);
+    g.add(white);
+    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 12), irisMat);
+    iris.position.set(0.18 * sx, 1.39, 0.5);
+    g.add(iris);
+    const shine = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), shineMat);
+    shine.position.set(0.2 * sx, 1.43, 0.55);
+    g.add(shine);
+  }
+
+  // Nose
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), earMat);
+  nose.position.set(0, 1.32, 0.52);
+  g.add(nose);
+
+  // Rosy cheeks
+  const cheekMat = new THREE.MeshStandardMaterial({ color: 0xff8aa0, roughness: 0.7, transparent: true, opacity: 0.6 });
+  for (const sx of [-1, 1]) {
+    const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), cheekMat);
+    cheek.position.set(0.28 * sx, 1.26, 0.42);
+    cheek.scale.set(1, 0.7, 0.4);
+    g.add(cheek);
+  }
+
+  // Smile
+  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.028, 8, 16, Math.PI), mat(0x6a2e22, { rough: 0.6 }));
+  smile.position.set(0, 1.22, 0.46);
   smile.rotation.x = Math.PI;
   g.add(smile);
 
-  // Little arms reaching toward the wheel
-  const armMat = mat(charDef.skin, { rough: 0.85 });
+  // Arms reaching to the wheel, with glove hands
+  const armMat = mat(charDef.shirt, { rough: 0.7 });
+  const gloveMat = mat(0xffffff, { rough: 0.5 });
   for (const sx of [-1, 1]) {
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.34, 4, 8), armMat);
-    arm.position.set(0.34 * sx, 0.62, 0.28);
-    arm.rotation.x = -0.9;
-    arm.rotation.z = 0.3 * sx;
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.38, 6, 10), armMat);
+    arm.position.set(0.34 * sx, 0.64, 0.3);
+    arm.rotation.x = -0.95;
+    arm.rotation.z = 0.32 * sx;
     g.add(arm);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 10), gloveMat);
+    hand.position.set(0.26 * sx, 0.5, 0.62);
+    g.add(hand);
   }
 
   g.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });

@@ -39,27 +39,68 @@
         <div class="logo-badge">🏁</div>
         <h1 class="logo">KART<span>OPIA</span></h1>
         <p class="tagline">Derrape, turbine, vença. 🏎️💨</p>
-        <button class="btn-primary btn-big" id="btn-play">▶ JOGAR</button>
+        <div class="menu-buttons">
+          <button class="btn-primary btn-big" id="btn-quick">🏁 Corrida Rápida</button>
+          <button class="btn-primary btn-cup" id="btn-cups">🏆 Campeonato</button>
+          <button class="btn-ghost" id="btn-shop">🛒 Loja</button>
+        </div>
         <p class="hint">Estilo Wii • 8 pilotos • 6 karts • 10 pistas • itens 🍌⚡</p>
       </div>
+      <div class="coin-badge" id="coin-badge-title">🪙 <span>0</span></div>
     </section>
 
     <!-- Selection -->
     <section id="screen-select" class="screen">
       <div class="select-inner">
+        <div class="select-head">
+          <button class="icon-btn" id="btn-back">←</button>
+          <h1 class="screen-title" id="select-title">Corrida Rápida</h1>
+          <div class="coin-badge" id="coin-badge-select">🪙 <span>0</span></div>
+        </div>
+
         <h2>Escolha seu piloto</h2>
         <div class="grid" id="char-grid"></div>
 
         <h2>Escolha seu kart</h2>
         <div class="grid" id="kart-grid"></div>
 
-        <h2>Escolha a pista</h2>
-        <div class="track-list" id="track-list"></div>
+        <div id="track-section">
+          <h2>Escolha a pista</h2>
+          <div class="track-list" id="track-list"></div>
+        </div>
 
         <div class="select-actions">
-          <button class="btn-ghost" id="btn-back">Voltar</button>
           <button class="btn-primary" id="btn-race">CORRER!</button>
         </div>
+      </div>
+    </section>
+
+    <!-- Cups (Grand Prix select) -->
+    <section id="screen-cups" class="screen">
+      <div class="select-inner">
+        <div class="select-head">
+          <button class="icon-btn" id="btn-cups-back">←</button>
+          <h1 class="screen-title">Campeonato</h1>
+          <div class="coin-badge" id="coin-badge-cups">🪙 <span>0</span></div>
+        </div>
+        <p class="screen-sub">Vença a sequência de pistas e suba ao pódio para ganhar o troféu e moedas! 🏆</p>
+        <div class="cup-list" id="cup-list"></div>
+      </div>
+    </section>
+
+    <!-- Shop -->
+    <section id="screen-shop" class="screen">
+      <div class="select-inner">
+        <div class="select-head">
+          <button class="icon-btn" id="btn-shop-back">←</button>
+          <h1 class="screen-title">🛒 Loja</h1>
+          <div class="coin-badge" id="coin-badge-shop">🪙 <span>0</span></div>
+        </div>
+        <p class="screen-sub">Ganhe 🪙 correndo e desbloqueie novos pilotos e karts!</p>
+        <h2>Pilotos</h2>
+        <div class="grid" id="shop-char-grid"></div>
+        <h2>Karts</h2>
+        <div class="grid" id="shop-kart-grid"></div>
       </div>
     </section>
 
@@ -67,11 +108,19 @@
     <section id="screen-results" class="screen">
       <div class="results-inner">
         <h2 id="results-title">Resultado</h2>
+        <p class="reward-line" id="reward-line"></p>
         <ol id="results-list" class="results-list"></ol>
-        <div class="select-actions">
-          <button class="btn-ghost" id="btn-menu">Menu</button>
-          <button class="btn-primary" id="btn-again">Correr de novo</button>
-        </div>
+        <div class="select-actions" id="results-actions"></div>
+      </div>
+    </section>
+
+    <!-- Championship standings -->
+    <section id="screen-standings" class="screen">
+      <div class="results-inner">
+        <h2 id="standings-title">Classificação</h2>
+        <p class="screen-sub" id="standings-sub"></p>
+        <ol id="standings-list" class="results-list"></ol>
+        <div class="select-actions" id="standings-actions"></div>
       </div>
     </section>
 

@@ -286,3 +286,78 @@ html, body {
   box-shadow: 0 3px 0 rgba(0,0,0,.3);
 }
 .mute-btn:active { transform: translateY(2px); }
+
+
+/* ===================== Menu buttons & coin badge ===================== */
+.menu-buttons { display: flex; flex-direction: column; gap: 12px; align-items: center; margin-top: 6px; }
+.btn-cup {
+  background: linear-gradient(180deg, #ffd23f, #e8a800);
+  color: #5a3d00; box-shadow: 0 6px 0 #9c6f00, 0 8px 20px rgba(0,0,0,.4);
+}
+.btn-cup:active { transform: translateY(4px); box-shadow: 0 2px 0 #9c6f00; }
+
+.coin-badge {
+  position: absolute; top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right));
+  background: rgba(0,0,0,.4); border: 2px solid var(--yellow); color: var(--yellow);
+  font-weight: 900; font-size: 18px; padding: 6px 14px; border-radius: 999px;
+  display: flex; gap: 6px; align-items: center; z-index: 5;
+}
+
+/* ===================== Screen headers ===================== */
+.select-head {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+  position: relative;
+}
+.select-head .coin-badge { position: static; margin-left: auto; }
+.screen-title { font-size: clamp(22px, 5vw, 32px); margin: 0; color: #fff; }
+.screen-sub { opacity: .8; margin: 4px 0 16px; font-size: 14px; }
+.icon-btn {
+  width: 44px; height: 44px; border-radius: 12px; border: none; cursor: pointer;
+  background: rgba(255,255,255,.14); color: #fff; font-size: 22px; font-weight: 900;
+  box-shadow: 0 4px 0 rgba(0,0,0,.3);
+}
+.icon-btn:active { transform: translateY(3px); }
+
+/* ===================== Locked cards / shop ===================== */
+.card { position: relative; }
+.card.locked { opacity: .85; }
+.card .lock {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 28px; background: rgba(10,8,24,.55); border-radius: 12px;
+}
+.card.shake { animation: cardShake .35s ease; }
+@keyframes cardShake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); } 75% { transform: translateX(6px); }
+}
+.shop-card .price {
+  margin-top: 4px; font-weight: 900; color: var(--yellow); font-size: 13px;
+}
+.shop-card .price.owned-tag { color: var(--cyan); }
+.shop-card.owned { border-color: rgba(0,245,212,.4); }
+
+/* ===================== Cup list ===================== */
+.cup-list { display: flex; flex-direction: column; gap: 12px; }
+.cup-row {
+  display: flex; align-items: center; gap: 14px; cursor: pointer;
+  background: linear-gradient(160deg, rgba(40,37,86,.92), rgba(21,19,46,.92));
+  border: 3px solid transparent; border-radius: 16px; padding: 14px 16px;
+  transition: transform .1s ease, border-color .15s ease;
+}
+.cup-row:active { transform: scale(.98); }
+.cup-row:hover { border-color: var(--yellow); }
+.cup-emoji { font-size: 38px; }
+.cup-meta { flex: 1; }
+.cup-name { font-weight: 900; font-size: 18px; }
+.cup-tracks { font-size: 12px; opacity: .7; margin-top: 2px; }
+.cup-go { font-size: 22px; color: var(--cyan); }
+
+/* ===================== Reward line / toast ===================== */
+.reward-line { font-size: 18px; margin: 4px 0 12px; color: var(--yellow); }
+.toast {
+  position: fixed; left: 50%; bottom: 18%; transform: translateX(-50%) translateY(20px);
+  background: rgba(10,8,24,.92); border: 2px solid var(--cyan); color: #fff;
+  padding: 12px 22px; border-radius: 999px; font-weight: 800; font-size: 15px;
+  opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease; z-index: 50;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }

@@ -146,7 +146,9 @@ export class Input {
     return {
       throttle: up ? 1 : 0,
       brake: down ? 1 : 0,
-      steer,
+      // NOTE: the chase camera looks along +Z, which mirrors world X on screen.
+      // Negate so that pushing the stick RIGHT turns the kart RIGHT on screen.
+      steer: -steer,
       drift: !!drift,
     };
   }

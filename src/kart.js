@@ -23,10 +23,10 @@ export class Kart {
     const accelStat = charDef.accel + kartDef.dAccel;
     const handStat = charDef.handling + kartDef.dHandling;
 
-    this.maxSpeed = 30 + speedStat * 1.1;        // top speed
-    this.accel = 16 + accelStat * 1.6;           // acceleration
-    this.brakeDecel = 46;
-    this.turnRate = 2.0 + handStat * 0.11;       // rad/s
+    this.maxSpeed = 46 + speedStat * 1.5;        // top speed (buffed - feels strong)
+    this.accel = 30 + accelStat * 2.2;           // acceleration (snappier launch)
+    this.brakeDecel = 60;
+    this.turnRate = 2.15 + handStat * 0.12;      // rad/s
     this.grip = 0.86 + handStat * 0.008;
 
     // Visual

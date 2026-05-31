@@ -1,7 +1,7 @@
 // KARTOPIA service worker - offline play + installable PWA/APK.
 // IMPORTANT: network-first for our own files so updates ALWAYS reach the player.
 // (The previous cache-first version made people see an old build.)
-const CACHE = 'kartopia-v3';
+const CACHE = 'kartopia-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -20,6 +20,7 @@ const ASSETS = [
   './src/builders.js',
   './src/data.js',
   './src/fx.js',
+  './src/progress.js',
 ];
 
 self.addEventListener('install', (e) => {
