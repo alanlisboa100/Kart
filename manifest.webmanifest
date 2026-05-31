@@ -1,0 +1,26 @@
+{
+  "name": "KARTOPIA",
+  "short_name": "KARTOPIA",
+  "description": "Jogo de kart 3D estilo Wii - derrape, turbine e vença!",
+  "lang": "pt-BR",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#101225",
+  "theme_color": "#101225",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

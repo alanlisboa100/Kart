@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#2b2a55"/>
+      <stop offset="100%" stop-color="#101225"/>
+    </radialGradient>
+    <linearGradient id="kart" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff5a8a"/>
+      <stop offset="100%" stop-color="#c01070"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <!-- track swoosh -->
+  <path d="M40 360 Q256 180 472 360" fill="none" stroke="#3b2b5a" stroke-width="56" stroke-linecap="round"/>
+  <path d="M40 360 Q256 180 472 360" fill="none" stroke="#00f5d4" stroke-width="8" stroke-dasharray="22 26" stroke-linecap="round"/>
+  <!-- kart body -->
+  <g transform="translate(256 300)">
+    <ellipse cx="0" cy="64" rx="120" ry="26" fill="#000" opacity="0.25"/>
+    <circle cx="-78" cy="40" r="34" fill="#1c1c1c"/>
+    <circle cx="-78" cy="40" r="15" fill="#ffd23f"/>
+    <circle cx="78" cy="40" r="34" fill="#1c1c1c"/>
+    <circle cx="78" cy="40" r="15" fill="#ffd23f"/>
+    <rect x="-96" y="-14" width="192" height="56" rx="26" fill="url(#kart)"/>
+    <rect x="-46" y="-48" width="92" height="52" rx="20" fill="#ffffff"/>
+    <!-- driver head -->
+    <circle cx="0" cy="-56" r="34" fill="#ffd9a8"/>
+    <path d="M-34 -64 a34 34 0 0 1 68 0 z" fill="#3d8bff"/>
+    <circle cx="-12" cy="-54" r="5" fill="#1a1a1a"/>
+    <circle cx="12" cy="-54" r="5" fill="#1a1a1a"/>
+  </g>
+  <text x="256" y="470" font-family="Trebuchet MS, Arial, sans-serif" font-weight="900" font-size="58" fill="#ffd23f" text-anchor="middle">KARTOPIA</text>
+</svg>

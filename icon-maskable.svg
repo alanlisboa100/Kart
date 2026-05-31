@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="kart2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff5a8a"/>
+      <stop offset="100%" stop-color="#c01070"/>
+    </linearGradient>
+  </defs>
+  <!-- full-bleed background for maskable safe-zone -->
+  <rect width="512" height="512" fill="#181640"/>
+  <circle cx="256" cy="256" r="190" fill="#22204d"/>
+  <!-- kart (kept within central safe zone ~80%) -->
+  <g transform="translate(256 250) scale(0.92)">
+    <ellipse cx="0" cy="64" rx="120" ry="24" fill="#000" opacity="0.25"/>
+    <circle cx="-78" cy="40" r="32" fill="#1c1c1c"/>
+    <circle cx="-78" cy="40" r="14" fill="#ffd23f"/>
+    <circle cx="78" cy="40" r="32" fill="#1c1c1c"/>
+    <circle cx="78" cy="40" r="14" fill="#ffd23f"/>
+    <rect x="-96" y="-14" width="192" height="56" rx="26" fill="url(#kart2)"/>
+    <rect x="-46" y="-48" width="92" height="52" rx="20" fill="#ffffff"/>
+    <circle cx="0" cy="-56" r="32" fill="#ffd9a8"/>
+    <path d="M-32 -62 a32 32 0 0 1 64 0 z" fill="#3d8bff"/>
+    <circle cx="-11" cy="-54" r="5" fill="#1a1a1a"/>
+    <circle cx="11" cy="-54" r="5" fill="#1a1a1a"/>
+  </g>
+</svg>
