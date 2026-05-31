@@ -172,6 +172,19 @@ export function buildKart(kartDef) {
   flame.visible = false;
   group.add(flame);
 
+  // Drift sparks (two little glowing dots near the rear wheels)
+  const sparks = [];
+  for (const sx of [-1, 1]) {
+    const spark = new THREE.Mesh(
+      new THREE.SphereGeometry(0.16, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0x4dc3ff, transparent: true, opacity: 0.9 })
+    );
+    spark.position.set(0.84 * sx, 0.3, -0.78);
+    spark.visible = false;
+    group.add(spark);
+    sparks.push(spark);
+  }
+
   // Soft blob shadow
   const shadow = new THREE.Mesh(
     new THREE.CircleGeometry(1.25, 24),
@@ -181,5 +194,5 @@ export function buildKart(kartDef) {
   shadow.position.y = 0.02;
   group.add(shadow);
 
-  return { group, wheels, frontWheels, flame };
+  return { group, wheels, frontWheels, flame, sparks };
 }

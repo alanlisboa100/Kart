@@ -35,6 +35,7 @@ export class Kart {
     this.wheels = built.wheels;
     this.frontWheels = built.frontWheels;
     this.flame = built.flame;
+    this.sparks = built.sparks || [];
     const driver = buildCharacter(charDef);
     driver.position.set(0, 0.35, -0.35);
     driver.scale.setScalar(0.85);
@@ -47,6 +48,9 @@ export class Kart {
     this.speed = 0;
     this.visualYaw = 0;     // extra yaw for drift slide look
     this.lean = 0;
+    this.steerSmooth = 0;   // smoothed steering axis for buttery turns
+    this.bob = Math.random() * Math.PI * 2; // idle bob phase
+    this.bobOffset = 0;
 
     // Drift state
     this.drifting = false;
@@ -89,6 +93,7 @@ export class Kart {
     this.spin = 0;
     this.spinAngle = 0;
     this.shrink = 0;
+    this.steerSmooth = 0;
     this.mesh.scale.setScalar(1);
     this._applyTransform();
   }
@@ -136,14 +141,20 @@ export class Kart {
     // --- Steering ---
     // turn influence scales with speed and direction of travel
     const turnInfluence = THREE.MathUtils.clamp(this.speed / 7, -1, 1);
-    let steer = input.steer;
+    // Smooth the raw steer axis toward its target for buttery, non-twitchy turns.
+    // Snappier toward extremes, gentle return to center.
+    const rawSteer = THREE.MathUtils.clamp(input.steer, -1, 1);
+    const smoothK = 1 - Math.pow(0.0009, dt); // frame-rate independent (~0.5 @60fps)
+    this.steerSmooth += (rawSteer - this.steerSmooth) * smoothK;
+    if (Math.abs(this.steerSmooth) < 0.003) this.steerSmooth = 0;
+    let steer = this.steerSmooth;
 
     // --- Drift handling ---
     const canDrift = Math.abs(this.speed) > this.maxSpeed * 0.35;
     if (input.drift && canDrift) {
-      if (!this.drifting && Math.abs(steer) > 0.15) {
+      if (!this.drifting && Math.abs(rawSteer) > 0.2) {
         this.drifting = true;
-        this.driftDir = Math.sign(steer);
+        this.driftDir = Math.sign(rawSteer);
         this.driftCharge = 0;
       }
     } else if (this.drifting) {
@@ -253,10 +264,28 @@ export class Kart {
     if (this.flame.visible) {
       this.flame.scale.setScalar(0.8 + Math.random() * 0.5);
     }
+    // Drift sparks, colored by mini-turbo tier
+    const tier = this.driftTier;
+    const sparkColor = tier >= 3 ? 0xb14dff : tier >= 2 ? 0xff9f1c : 0x4dc3ff;
+    for (const s of this.sparks) {
+      if (this.drifting && Math.abs(this.speed) > 4) {
+        s.visible = true;
+        s.material.color.setHex(sparkColor);
+        s.scale.setScalar(0.6 + Math.random() * 0.9);
+        s.material.opacity = 0.6 + Math.random() * 0.4;
+      } else {
+        s.visible = false;
+      }
+    }
+    // Idle/road bob - subtle bounce that grows with speed
+    this.bob += dt * (6 + Math.abs(this.speed) * 0.3);
+    const bobAmt = Math.min(0.06, 0.02 + Math.abs(this.speed) * 0.0016);
+    this.bobOffset = Math.sin(this.bob) * bobAmt;
   }
 
   _applyTransform() {
     this.mesh.position.copy(this.pos);
+    this.mesh.position.y = this.pos.y + (this.bobOffset || 0);
     this.mesh.rotation.y = this.heading + this.visualYaw + this.spinAngle;
     this.mesh.rotation.z = this.lean;
     this.mesh.scale.setScalar(this.shrink > 0 ? 0.55 : 1);

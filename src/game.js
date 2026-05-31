@@ -15,10 +15,17 @@ export class Game {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = false;
+    // Warmer, punchier image
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.15;
+    if ('outputColorSpace' in this.renderer) this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(62, 1, 0.1, 2000);
     this.camera.position.set(0, 8, -14);
+    this.baseFov = 62;
+    this.fov = 62;
+    this.sky = null;
 
     this._addLights();
 
@@ -46,11 +53,74 @@ export class Game {
   }
 
   _addLights() {
-    this.hemi = new THREE.HemisphereLight(0xffffff, 0x6688aa, 0.95);
+    this.hemi = new THREE.HemisphereLight(0xfff4e0, 0x44607a, 1.05);
     this.scene.add(this.hemi);
-    this.sun = new THREE.DirectionalLight(0xffffff, 1.1);
+    this.sun = new THREE.DirectionalLight(0xfff2d6, 1.35);
     this.sun.position.set(60, 120, 40);
     this.scene.add(this.sun);
+    // subtle fill from the opposite side to round out the karts
+    this.fill = new THREE.DirectionalLight(0xbfd4ff, 0.35);
+    this.fill.position.set(-50, 40, -30);
+    this.scene.add(this.fill);
+  }
+
+  // Big gradient sky dome + a soft sun glow + drifting clouds, themed per track.
+  _buildSky(theme) {
+    const group = new THREE.Group();
+
+    // Gradient dome (vertex-colored, lit-independent)
+    const top = new THREE.Color(theme.sky);
+    const bottom = new THREE.Color(theme.fog);
+    const geo = new THREE.SphereGeometry(900, 24, 16);
+    const pos = geo.attributes.position;
+    const colors = [];
+    const c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i) / 900; // -1..1
+      const t = THREE.MathUtils.clamp((y + 0.2) / 1.0, 0, 1);
+      c.copy(bottom).lerp(top, t);
+      colors.push(c.r, c.g, c.b);
+    }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    const dome = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false }));
+    group.add(dome);
+
+    // Sun / moon billboard
+    const sun = new THREE.Mesh(
+      new THREE.CircleGeometry(70, 32),
+      new THREE.MeshBasicMaterial({ color: 0xfff3c0, transparent: true, opacity: 0.9, fog: false })
+    );
+    sun.position.set(-260, 320, -600);
+    group.add(sun);
+    const glow = new THREE.Mesh(
+      new THREE.CircleGeometry(140, 32),
+      new THREE.MeshBasicMaterial({ color: 0xfff3c0, transparent: true, opacity: 0.18, fog: false })
+    );
+    glow.position.copy(sun.position).setZ(-601);
+    group.add(glow);
+
+    // Fluffy clouds (a few soft sphere clusters)
+    const dark = theme.sky < 0x333333;
+    if (!dark) {
+      const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, fog: false });
+      for (let i = 0; i < 14; i++) {
+        const cloud = new THREE.Group();
+        const blobs = 3 + Math.floor(Math.random() * 3);
+        for (let b = 0; b < blobs; b++) {
+          const s = new THREE.Mesh(new THREE.SphereGeometry(18 + Math.random() * 16, 8, 6), cloudMat);
+          s.position.set((b - blobs / 2) * 22, Math.random() * 8, Math.random() * 10);
+          s.scale.y = 0.6;
+          cloud.add(s);
+        }
+        const ang = Math.random() * Math.PI * 2;
+        const rad = 400 + Math.random() * 300;
+        cloud.position.set(Math.cos(ang) * rad, 160 + Math.random() * 120, Math.sin(ang) * rad);
+        group.add(cloud);
+      }
+    }
+
+    this.scene.add(group);
+    this.sky = group;
   }
 
   resize() {
@@ -68,7 +138,8 @@ export class Game {
 
     // Theme / sky / fog
     this.scene.background = new THREE.Color(trackDef.theme.sky);
-    this.scene.fog = new THREE.Fog(trackDef.theme.fog, 180, 620);
+    this.scene.fog = new THREE.Fog(trackDef.theme.fog, 220, 780);
+    this._buildSky(trackDef.theme);
 
     this.track = new Track(trackDef);
     this.scene.add(this.track.group);
@@ -313,6 +384,7 @@ export class Game {
     const p = this.player;
     const fwd = p.forward();
     const speedFactor = Math.min(Math.abs(p.speed) / p.maxSpeed, 1);
+    const boosting = p.boostTimer > 0;
     const dist = 12 + speedFactor * 2.5;
     const height = 6.5;
     const desired = new THREE.Vector3()
@@ -326,6 +398,14 @@ export class Game {
       slow ? 0.05 : 1 - Math.pow(0.0008, dt)
     );
     this.camera.lookAt(this.camTarget);
+
+    // Dynamic FOV: widens with speed and pops on boost for a rush feeling.
+    const targetFov = this.baseFov + speedFactor * 6 + (boosting ? 8 : 0);
+    this.fov += (targetFov - this.fov) * (1 - Math.pow(0.02, dt));
+    if (Math.abs(this.fov - this.camera.fov) > 0.05) {
+      this.camera.fov = this.fov;
+      this.camera.updateProjectionMatrix();
+    }
   }
 
   cleanup() {
@@ -335,6 +415,14 @@ export class Game {
     this.player = null;
     if (this.items) { this.items.dispose(); this.items = null; }
     if (this.audio) { this.audio.stopEngine(); this.audio.stopMusic(); }
+    if (this.sky) {
+      this.scene.remove(this.sky);
+      this.sky.traverse((o) => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) { Array.isArray(o.material) ? o.material.forEach((m) => m.dispose()) : o.material.dispose(); }
+      });
+      this.sky = null;
+    }
     if (this.track) {
       this.scene.remove(this.track.group);
       this.track.dispose();

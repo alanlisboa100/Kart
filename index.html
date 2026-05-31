@@ -94,15 +94,22 @@
 
     <!-- Touch controls -->
     <div id="touch" class="hidden">
-      <div class="touch-left">
-        <button class="tbtn" data-btn="left">◀</button>
-        <button class="tbtn" data-btn="right">▶</button>
+      <!-- Analog joystick (left thumb) -->
+      <div id="joystick" class="joystick">
+        <div class="joy-ring"></div>
+        <div id="joy-knob" class="joy-knob"></div>
+        <span class="joy-hint">↤ dirigir ↦</span>
       </div>
+      <!-- Action buttons (right thumb) -->
       <div class="touch-right">
-        <button class="tbtn item" data-btn="item">ITEM</button>
-        <button class="tbtn drift" data-btn="drift">DRIFT</button>
-        <button class="tbtn brake" data-btn="brake">▼</button>
-        <button class="tbtn gas" data-btn="gas">GÁS</button>
+        <div class="action-row">
+          <button class="tbtn item" data-btn="item">🎁</button>
+          <button class="tbtn drift" data-btn="drift">DRIFT</button>
+        </div>
+        <div class="action-row">
+          <button class="tbtn brake" data-btn="brake">BREK</button>
+          <button class="tbtn gas" data-btn="gas">GÁS</button>
+        </div>
       </div>
     </div>
 

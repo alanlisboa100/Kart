@@ -158,20 +158,63 @@ html, body {
 
 /* ---------- Touch controls ---------- */
 #touch { position: fixed; inset: 0; pointer-events: none; }
-.touch-left, .touch-right {
-  position: absolute; bottom: max(22px, env(safe-area-inset-bottom)); display: flex; gap: 14px; pointer-events: auto;
+
+/* Analog joystick (left) */
+.joystick {
+  position: absolute; bottom: max(26px, env(safe-area-inset-bottom));
+  left: max(20px, env(safe-area-inset-left));
+  width: 168px; height: 168px; border-radius: 50%;
+  pointer-events: auto; touch-action: none;
+  display: flex; align-items: center; justify-content: center;
 }
-.touch-left { left: max(18px, env(safe-area-inset-left)); }
-.touch-right { right: max(18px, env(safe-area-inset-right)); align-items: flex-end; }
+.joy-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, rgba(255,255,255,.14), rgba(255,255,255,.05));
+  border: 3px solid rgba(255,255,255,.22);
+  box-shadow: inset 0 6px 20px rgba(0,0,0,.35);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.joystick.active .joy-ring {
+  border-color: var(--cyan);
+  box-shadow: inset 0 6px 20px rgba(0,0,0,.35), 0 0 26px rgba(0,245,212,.35);
+}
+.joy-knob {
+  position: relative; width: 76px; height: 76px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #ffffff, #b9c6ff 60%, #6a7bd6);
+  box-shadow: 0 6px 14px rgba(0,0,0,.45);
+  will-change: transform;
+}
+.joystick.active .joy-knob {
+  background: radial-gradient(circle at 40% 35%, #ffffff, #8ff5e6 60%, var(--cyan));
+}
+.joy-hint {
+  position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; opacity: .55; white-space: nowrap; letter-spacing: 1px;
+}
+
+/* Action buttons (right) */
+.touch-right {
+  position: absolute; bottom: max(26px, env(safe-area-inset-bottom));
+  right: max(20px, env(safe-area-inset-right));
+  display: flex; flex-direction: column; gap: 14px; align-items: flex-end; pointer-events: auto;
+}
+.action-row { display: flex; gap: 14px; align-items: center; }
 .tbtn {
   width: 78px; height: 78px; border-radius: 50%; border: none;
-  background: rgba(255,255,255,.16); color: #fff; font-size: 26px; font-weight: 900;
-  backdrop-filter: blur(4px); box-shadow: 0 4px 0 rgba(0,0,0,.3); cursor: pointer;
+  color: #fff; font-size: 24px; font-weight: 900;
+  backdrop-filter: blur(4px); box-shadow: 0 5px 0 rgba(0,0,0,.35), 0 6px 14px rgba(0,0,0,.3);
+  cursor: pointer; transition: transform .06s ease, filter .1s ease;
+  display: flex; align-items: center; justify-content: center;
 }
-.tbtn:active { transform: translateY(3px); background: rgba(255,255,255,.3); }
-.tbtn.gas { width: 96px; height: 96px; background: rgba(46,196,182,.4); font-size: 22px; }
-.tbtn.drift { background: rgba(255,46,151,.4); font-size: 15px; }
-.tbtn.brake { width: 66px; height: 66px; background: rgba(255,159,28,.35); }
+.tbtn.on, .tbtn:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,.35); filter: brightness(1.2); }
+.tbtn.gas { width: 104px; height: 104px; font-size: 22px;
+  background: radial-gradient(circle at 40% 35%, #4dffd0, #16b89a); }
+.tbtn.brake { width: 80px; height: 80px; font-size: 16px;
+  background: radial-gradient(circle at 40% 35%, #ffd27a, #ff8c1a); }
+.tbtn.drift { font-size: 15px;
+  background: radial-gradient(circle at 40% 35%, #ff7ac0, #d61f86); }
+.tbtn.item { font-size: 30px;
+  background: radial-gradient(circle at 40% 35%, #ffe88a, #ffb000); }
 
 
 /* ---------- Item slot ---------- */
@@ -194,9 +237,3 @@ html, body {
   box-shadow: 0 3px 0 rgba(0,0,0,.3);
 }
 .mute-btn:active { transform: translateY(2px); }
-
-/* ---------- ITEM touch button ---------- */
-.tbtn.item {
-  width: 72px; height: 72px;
-  background: rgba(255,210,63,.4); font-size: 14px; color: #1a1a1a; font-weight: 900;
-}

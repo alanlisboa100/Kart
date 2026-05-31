@@ -44,6 +44,7 @@ const hud = {
 
 const game = new Game(canvas, hud, audio);
 input.bindButtons($('#touch'));
+input.bindJoystick($('#joystick'), $('#joy-knob'));
 
 // ---- Selection state ----
 const sel = { char: CHARACTERS[0], kart: KARTS[0], track: TRACKS[0] };
