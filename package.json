@@ -1,0 +1,11 @@
+{
+  "name": "kartopia",
+  "version": "0.1.0",
+  "description": "KARTOPIA - a Wii/Mii-style 3D kart racing game (Three.js, no build step).",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "serve": "python3 -m http.server 8080"
+  },
+  "license": "MIT"
+}

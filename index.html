@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#101225" />
+  <title>KARTOPIA</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <!-- Three.js is loaded from a CDN (needs internet on first load). -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- ===================== UI OVERLAY ===================== -->
+  <div id="ui">
+
+    <!-- Title -->
+    <section id="screen-title" class="screen active">
+      <div class="title-wrap">
+        <h1 class="logo">KART<span>OPIA</span></h1>
+        <p class="tagline">Derrape, turbine, vença. 🏎️💨</p>
+        <button class="btn-primary" id="btn-play">JOGAR</button>
+        <p class="hint">Estilo Wii • 8 pilotos • 6 karts • 10 pistas • itens 🍌⚡</p>
+      </div>
+    </section>
+
+    <!-- Selection -->
+    <section id="screen-select" class="screen">
+      <div class="select-inner">
+        <h2>Escolha seu piloto</h2>
+        <div class="grid" id="char-grid"></div>
+
+        <h2>Escolha seu kart</h2>
+        <div class="grid" id="kart-grid"></div>
+
+        <h2>Escolha a pista</h2>
+        <div class="track-list" id="track-list"></div>
+
+        <div class="select-actions">
+          <button class="btn-ghost" id="btn-back">Voltar</button>
+          <button class="btn-primary" id="btn-race">CORRER!</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section id="screen-results" class="screen">
+      <div class="results-inner">
+        <h2 id="results-title">Resultado</h2>
+        <ol id="results-list" class="results-list"></ol>
+        <div class="select-actions">
+          <button class="btn-ghost" id="btn-menu">Menu</button>
+          <button class="btn-primary" id="btn-again">Correr de novo</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- HUD (during race) -->
+    <div id="hud" class="hidden">
+      <div class="hud-top">
+        <div class="hud-pill"><span class="hud-label">VOLTA</span><span id="hud-lap">1/3</span></div>
+        <div class="hud-pill"><span class="hud-label">POS</span><span id="hud-pos">1/6</span></div>
+        <div class="hud-pill"><span class="hud-label">TEMPO</span><span id="hud-time">0:00</span></div>
+      </div>
+      <div class="hud-item" id="hud-item"></div>
+      <div class="hud-speed">
+        <span id="hud-speed">0</span><small>km/h</small>
+        <div class="drift-meter" id="drift-meter">
+          <i></i><i></i><i></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mute toggle -->
+    <button id="btn-mute" class="mute-btn hidden">🔊</button>
+
+    <!-- Countdown -->
+    <div id="countdown" class="hidden"><span id="countdown-num">3</span></div>
+
+    <!-- Touch controls -->
+    <div id="touch" class="hidden">
+      <div class="touch-left">
+        <button class="tbtn" data-btn="left">◀</button>
+        <button class="tbtn" data-btn="right">▶</button>
+      </div>
+      <div class="touch-right">
+        <button class="tbtn item" data-btn="item">ITEM</button>
+        <button class="tbtn drift" data-btn="drift">DRIFT</button>
+        <button class="tbtn brake" data-btn="brake">▼</button>
+        <button class="tbtn gas" data-btn="gas">GÁS</button>
+      </div>
+    </div>
+
+    <!-- Load error -->
+    <div id="loaderr" class="screen hidden">
+      <div class="title-wrap">
+        <h2>Ops! Não consegui carregar o motor 3D 😕</h2>
+        <p class="hint">O KARTOPIA precisa de internet para baixar a engine (Three.js) na primeira vez.<br/>Confira sua conexão e recarregue a página.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Friendly fallback if the 3D engine fails to load (e.g. no internet).
+    window.__kartopiaBooted = false;
+    setTimeout(function () {
+      if (!window.__kartopiaBooted) {
+        document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+        var e = document.getElementById('loaderr');
+        e.classList.remove('hidden'); e.classList.add('active');
+      }
+    }, 9000);
+  </script>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

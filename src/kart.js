@@ -1,0 +1,304 @@
+// KARTOPIA - Kart: arcade physics with drift + mini-turbo, plus visuals.
+import * as THREE from 'three';
+import { buildCharacter, buildKart } from './builders.js';
+
+const TMP = new THREE.Vector3();
+
+function angleLerp(a, b, t) {
+  let d = b - a;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return a + d * t;
+}
+
+export class Kart {
+  constructor(scene, charDef, kartDef, { isPlayer = false } = {}) {
+    this.scene = scene;
+    this.charDef = charDef;
+    this.kartDef = kartDef;
+    this.isPlayer = isPlayer;
+
+    // Derived stats (0..10ish) -> tuning
+    const speedStat = charDef.speed + kartDef.dSpeed;
+    const accelStat = charDef.accel + kartDef.dAccel;
+    const handStat = charDef.handling + kartDef.dHandling;
+
+    this.maxSpeed = 30 + speedStat * 1.1;        // top speed
+    this.accel = 16 + accelStat * 1.6;           // acceleration
+    this.brakeDecel = 46;
+    this.turnRate = 2.0 + handStat * 0.11;       // rad/s
+    this.grip = 0.86 + handStat * 0.008;
+
+    // Visual
+    const built = buildKart(kartDef);
+    this.mesh = built.group;
+    this.wheels = built.wheels;
+    this.frontWheels = built.frontWheels;
+    this.flame = built.flame;
+    const driver = buildCharacter(charDef);
+    driver.position.set(0, 0.35, -0.35);
+    driver.scale.setScalar(0.85);
+    this.mesh.add(driver);
+    scene.add(this.mesh);
+
+    // Physics state
+    this.pos = new THREE.Vector3();
+    this.heading = 0;       // yaw, forward = (sin h, 0, cos h)
+    this.speed = 0;
+    this.visualYaw = 0;     // extra yaw for drift slide look
+    this.lean = 0;
+
+    // Drift state
+    this.drifting = false;
+    this.driftDir = 0;      // -1 left, +1 right
+    this.driftCharge = 0;   // seconds held
+    this.boostTimer = 0;
+
+    // Items / status effects
+    this.heldItem = null;   // 'banana' | 'shell' | 'boost' | 'lightning' | null
+    this.roulette = 0;      // >0 while the item box roulette is spinning
+    this.aiItemTimer = 0;   // AI delay before using a held item
+    this.spin = 0;          // spin-out time remaining (lost control)
+    this.spinAngle = 0;     // visual spin rotation
+    this.shrink = 0;        // lightning shrink/slow time remaining
+
+    // Race progress
+    this.segIndex = 0;
+    this.lap = 0;
+    this.passedHalf = false; // gate: must pass mid-track before a lap counts
+    this.progress = 0;       // lap + segIndex/N  (for ranking)
+    this.finished = false;
+    this.finishTime = 0;
+    this.place = 0;
+  }
+
+  placeAt(pos, heading) {
+    this.pos.copy(pos);
+    this.heading = heading;
+    this.speed = 0;
+    this.drifting = false;
+    this.driftCharge = 0;
+    this.boostTimer = 0;
+    this.lap = 0;
+    this.passedHalf = false;
+    this.finished = false;
+    this.progress = 0;
+    this.heldItem = null;
+    this.roulette = 0;
+    this.aiItemTimer = 0;
+    this.spin = 0;
+    this.spinAngle = 0;
+    this.shrink = 0;
+    this.mesh.scale.setScalar(1);
+    this._applyTransform();
+  }
+
+  forward() {
+    return TMP.set(Math.sin(this.heading), 0, Math.cos(this.heading));
+  }
+
+  // input: { throttle, brake, steer, drift }
+  update(dt, input, track) {
+    if (this.finished) input = { throttle: 0.0, brake: 0, steer: 0, drift: false };
+
+    // --- Status: spin-out removes control ---
+    if (this.spin > 0) {
+      this.spin -= dt;
+      this.spinAngle += dt * 16;
+      this.speed *= 0.95;
+      input = { throttle: 0, brake: 0, steer: 0, drift: false };
+      if (this.drifting) this._releaseDrift();
+    } else if (this.spinAngle !== 0) {
+      this.spinAngle = 0;
+    }
+
+    // --- Status: lightning shrink slows the kart ---
+    const shrunk = this.shrink > 0;
+    if (shrunk) this.shrink -= dt;
+    const baseMax = this.maxSpeed * (shrunk ? 0.55 : 1);
+
+    // --- Longitudinal ---
+    const boosting = this.boostTimer > 0;
+    const targetMax = boosting ? baseMax * 1.4 : baseMax;
+    if (input.throttle > 0) {
+      this.speed += this.accel * input.throttle * dt;
+    } else if (input.brake > 0) {
+      this.speed -= this.brakeDecel * input.brake * dt;
+    } else {
+      // natural drag
+      this.speed -= Math.sign(this.speed) * Math.min(Math.abs(this.speed), 14 * dt);
+    }
+    // clamp
+    const minSpeed = -this.maxSpeed * 0.35;
+    this.speed = Math.max(minSpeed, Math.min(targetMax, this.speed));
+    if (this.boostTimer > 0) this.boostTimer -= dt;
+
+    // --- Steering ---
+    // turn influence scales with speed and direction of travel
+    const turnInfluence = THREE.MathUtils.clamp(this.speed / 7, -1, 1);
+    let steer = input.steer;
+
+    // --- Drift handling ---
+    const canDrift = Math.abs(this.speed) > this.maxSpeed * 0.35;
+    if (input.drift && canDrift) {
+      if (!this.drifting && Math.abs(steer) > 0.15) {
+        this.drifting = true;
+        this.driftDir = Math.sign(steer);
+        this.driftCharge = 0;
+      }
+    } else if (this.drifting) {
+      this._releaseDrift();
+    }
+
+    let effTurn = this.turnRate;
+    if (this.drifting) {
+      // bias the turn toward the drift direction; steering modulates within a range
+      const inward = THREE.MathUtils.clamp(steer * this.driftDir, -1, 1); // -1..1
+      const turnAmt = THREE.MathUtils.lerp(0.55, 1.25, (inward + 1) / 2);
+      this.heading += this.driftDir * effTurn * turnAmt * turnInfluence * dt;
+      this.driftCharge += dt;
+      // slight speed cost while drifting unless boosting
+      if (!boosting) this.speed -= 1.5 * dt;
+      // visual slide
+      this.visualYaw = THREE.MathUtils.lerp(this.visualYaw, -this.driftDir * 0.5, 0.15);
+      this.lean = THREE.MathUtils.lerp(this.lean, this.driftDir * 0.22, 0.15);
+    } else {
+      this.heading += steer * effTurn * turnInfluence * dt;
+      this.visualYaw = THREE.MathUtils.lerp(this.visualYaw, 0, 0.15);
+      this.lean = THREE.MathUtils.lerp(this.lean, -steer * 0.12 * turnInfluence, 0.12);
+    }
+
+    // --- Move ---
+    const fwd = this.forward();
+    this.pos.addScaledVector(fwd, this.speed * dt);
+
+    // --- Track collision / off-road ---
+    if (track) this._handleTrack(track, dt);
+
+    // --- Wheels & visuals ---
+    this._animate(dt, steer);
+    this._applyTransform();
+  }
+
+  _releaseDrift() {
+    // Mini-turbo tiers based on charge time
+    let boost = 0;
+    let color = 0x4dc3ff;
+    if (this.driftCharge > 1.9) { boost = 1.5; color = 0xb14dff; }      // purple
+    else if (this.driftCharge > 1.1) { boost = 1.1; color = 0xff9f1c; } // orange
+    else if (this.driftCharge > 0.55) { boost = 0.7; color = 0x4dc3ff; } // blue
+    if (boost > 0) {
+      this.boostTimer = boost;
+      this.speed = Math.max(this.speed, this.maxSpeed * 1.05);
+      this.flame.material.color.setHex(color);
+    }
+    this.drifting = false;
+    this.driftCharge = 0;
+    this.driftDir = 0;
+  }
+
+  _handleTrack(track, dt) {
+    const info = track.nearest(this.pos, this.segIndex);
+    const absLat = Math.abs(info.lateral);
+
+    // Off-road slowdown
+    if (absLat > track.halfWidth) {
+      const overTarget = this.maxSpeed * 0.45;
+      if (this.speed > overTarget) this.speed -= 28 * dt;
+    }
+    // Wall: clamp back inside and SLIDE along it (don't get pinned).
+    const limit = track.halfWidth + track.wallMargin;
+    if (absLat > limit) {
+      const sign = Math.sign(info.lateral) || 1;
+      const correction = info.lateral - sign * limit;
+      this.pos.x -= info.normal.x * correction;
+      this.pos.z -= info.normal.z * correction;
+      // Only scrub the speed that's heading INTO the wall, then steer parallel.
+      const fwd = this.forward();
+      const into = (fwd.x * info.normal.x + fwd.z * info.normal.z) * sign; // >0 = into wall
+      if (into > 0) this.speed *= 1 - Math.min(0.55, into * 0.6);
+      const tangentHeading = Math.atan2(info.tangent.x, info.tangent.z);
+      this.heading = angleLerp(this.heading, tangentHeading, 0.18);
+      if (this.drifting) this._releaseDrift();
+    }
+
+    // --- Lap progress ---
+    const prev = this.segIndex;
+    const cur = info.index;
+    this.segIndex = cur;
+    // mark that we've gone through the far half of the lap
+    if (cur > track.N * 0.4 && cur < track.N * 0.65) this.passedHalf = true;
+    const forwardDot = this.forward().dot(info.tangent);
+    // crossing the start/finish seam forward, but only counts if we did a real loop
+    if (prev > track.N * 0.75 && cur < track.N * 0.25 && forwardDot > 0) {
+      if (this.passedHalf) { this.lap += 1; this.passedHalf = false; }
+    } else if (prev < track.N * 0.25 && cur > track.N * 0.75 && forwardDot < 0) {
+      // went backward over the line
+      this.lap = Math.max(0, this.lap - 1);
+    }
+    this.progress = this.lap + cur / track.N;
+
+    // --- Boost pads ---
+    if (track.isBoostZone && track.isBoostZone(cur) && Math.abs(info.lateral) < track.halfWidth) {
+      this.boostTimer = Math.max(this.boostTimer, 0.45);
+      this.flame.material.color.setHex(0x00f5d4);
+    }
+  }
+
+  _animate(dt, steer) {
+    const spin = this.speed * dt / 0.42; // wheel radius
+    for (const w of this.wheels) w.rotation.x -= spin;
+    for (const fw of this.frontWheels) fw.rotation.y = steer * 0.5;
+    this.flame.visible = this.boostTimer > 0;
+    if (this.flame.visible) {
+      this.flame.scale.setScalar(0.8 + Math.random() * 0.5);
+    }
+  }
+
+  _applyTransform() {
+    this.mesh.position.copy(this.pos);
+    this.mesh.rotation.y = this.heading + this.visualYaw + this.spinAngle;
+    this.mesh.rotation.z = this.lean;
+    this.mesh.scale.setScalar(this.shrink > 0 ? 0.55 : 1);
+  }
+
+  // --- Item effects ---
+  spinOut(dur = 1.2) {
+    if (this.finished || this.spin > 0) return;
+    this.spin = dur;
+    this.speed *= 0.35;
+    this.boostTimer = 0;
+    if (this.drifting) this._releaseDrift();
+  }
+
+  applyItemBoost(dur = 1.4) {
+    this.boostTimer = Math.max(this.boostTimer, dur);
+    this.speed = Math.max(this.speed, this.maxSpeed * 1.12);
+    this.flame.material.color.setHex(0x00f5d4);
+  }
+
+  applyShrink(dur = 3) {
+    if (this.finished) return;
+    this.shrink = Math.max(this.shrink, dur);
+    this.speed *= 0.7;
+    if (this.drifting) this._releaseDrift();
+  }
+
+  get driftTier() {
+    if (this.driftCharge > 1.9) return 3;
+    if (this.driftCharge > 1.1) return 2;
+    if (this.driftCharge > 0.55) return 1;
+    return 0;
+  }
+
+  dispose() {
+    this.scene.remove(this.mesh);
+    this.mesh.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) {
+        if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose());
+        else o.material.dispose();
+      }
+    });
+  }
+}
