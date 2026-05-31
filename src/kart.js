@@ -65,6 +65,8 @@ export class Kart {
     this.spin = 0;          // spin-out time remaining (lost control)
     this.spinAngle = 0;     // visual spin rotation
     this.shrink = 0;        // lightning shrink/slow time remaining
+    this.shield = 0;        // shield time remaining (blocks one hit)
+    this.shieldMesh = built.shield || null; // visual bubble (hidden by default)
 
     // Race progress
     this.segIndex = 0;
@@ -97,8 +99,10 @@ export class Kart {
     this.spin = 0;
     this.spinAngle = 0;
     this.shrink = 0;
+    this.shield = 0;
     this.steerSmooth = 0;
     this.mesh.scale.setScalar(1);
+    this._updateShieldVisual();
     this._applyTransform();
   }
 
@@ -125,6 +129,13 @@ export class Kart {
     const shrunk = this.shrink > 0;
     if (shrunk) this.shrink -= dt;
     const baseMax = this.maxSpeed * (shrunk ? 0.55 : 1) * (this.rubber || 1);
+
+    // --- Status: shield timer + spinning bubble visual ---
+    if (this.shield > 0) {
+      this.shield -= dt;
+      if (this.shield <= 0) this._updateShieldVisual();
+      else if (this.shieldMesh) { this.shieldMesh.visible = true; this.shieldMesh.rotation.y += dt * 3; }
+    }
 
     // --- Longitudinal ---
     // Gradual acceleration with a smooth curve: strong pull off the line, then
@@ -303,6 +314,7 @@ export class Kart {
   // --- Item effects ---
   spinOut(dur = 1.2) {
     if (this.finished || this.spin > 0) return;
+    if (this.shield > 0) { this.shield = 0; this._updateShieldVisual(); return; } // blocked!
     this.spin = dur;
     this.speed *= 0.35;
     this.boostTimer = 0;
@@ -317,9 +329,19 @@ export class Kart {
 
   applyShrink(dur = 3) {
     if (this.finished) return;
+    if (this.shield > 0) { this.shield = 0; this._updateShieldVisual(); return; } // blocked!
     this.shrink = Math.max(this.shrink, dur);
     this.speed *= 0.7;
     if (this.drifting) this._releaseDrift();
+  }
+
+  applyShield(dur = 6) {
+    this.shield = Math.max(this.shield, dur);
+    this._updateShieldVisual();
+  }
+
+  _updateShieldVisual() {
+    if (this.shieldMesh) this.shieldMesh.visible = this.shield > 0;
   }
 
   get driftTier() {

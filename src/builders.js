@@ -297,5 +297,14 @@ export function buildKart(kartDef) {
   shadow.position.y = 0.02;
   group.add(shadow);
 
-  return { group, wheels, frontWheels, flame, sparks };
+  // Shield bubble (hidden until a shield item is used)
+  const shield = new THREE.Mesh(
+    new THREE.SphereGeometry(1.7, 16, 12),
+    new THREE.MeshBasicMaterial({ color: 0x4dd2ff, transparent: true, opacity: 0.28, depthWrite: false })
+  );
+  shield.position.y = 0.7;
+  shield.visible = false;
+  group.add(shield);
+
+  return { group, wheels, frontWheels, flame, sparks, shield };
 }

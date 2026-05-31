@@ -306,9 +306,10 @@ export class Game {
     for (const k of this.karts) {
       if (k === player) { k.rubber = 1; continue; }
       const gap = player.progress - k.progress; // >0 means rival is BEHIND player
-      // map gap -> multiplier: behind => up to +12%, ahead => down to -8%
-      let mult = 1 + THREE.MathUtils.clamp(gap * 0.9, -0.08, 0.12);
-      k.rubber = mult;
+      // Baseline parity (+2%) so rivals don't trail off on their own, plus a
+      // stronger catch-up when behind and a mild ease-off when ahead.
+      let mult = 1.02 + THREE.MathUtils.clamp(gap * 1.1, -0.05, 0.13);
+      k.rubber = THREE.MathUtils.clamp(mult, 0.97, 1.15);
     }
   }
 
@@ -471,6 +472,10 @@ export class Game {
       case 'oil':
         this.items.dropOil(kart);
         if (this.audio && kart === this.player) this.audio.play('use');
+        break;
+      case 'shield':
+        kart.applyShield(6);
+        if (this.audio && kart === this.player) this.audio.play('item');
         break;
       case 'lightning':
         for (const other of this.karts) {
@@ -671,9 +676,9 @@ function pickDifferent(list, used) {
 function rollItem(place, total) {
   const frac = total > 1 ? (place - 1) / (total - 1) : 0;
   let pool;
-  // Leaders get defensive drops (banana/oil/bomb); trailers get speed/lightning.
-  if (frac < 0.25) pool = ['banana', 'oil', 'bomb', 'shell', 'boost'];
-  else if (frac < 0.6) pool = ['shell', 'banana', 'oil', 'bomb', 'boost', 'boost'];
-  else pool = ['boost', 'boost', 'shell', 'banana', 'lightning'];
+  // Leaders get defensive drops (banana/oil/bomb/shield); trailers get speed/lightning.
+  if (frac < 0.25) pool = ['banana', 'oil', 'bomb', 'shield', 'shell', 'boost'];
+  else if (frac < 0.6) pool = ['shell', 'banana', 'oil', 'bomb', 'shield', 'boost', 'boost'];
+  else pool = ['boost', 'boost', 'shield', 'shell', 'banana', 'lightning'];
   return pool[Math.floor(Math.random() * pool.length)];
 }

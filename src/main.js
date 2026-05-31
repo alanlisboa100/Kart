@@ -12,7 +12,7 @@ window.__kartopiaBooted = true;
 
 const $ = (sel) => document.querySelector(sel);
 const hex = (n) => '#' + n.toString(16).padStart(6, '0');
-const ITEM_EMOJI = { banana: '🍌', shell: '🐢', boost: '🍄', lightning: '⚡', bomb: '💣', oil: '🛢️' };
+const ITEM_EMOJI = { banana: '🍌', shell: '🐢', boost: '🍄', lightning: '⚡', bomb: '💣', oil: '🛢️', shield: '🛡️' };
 
 const canvas = $('#game');
 const input = new Input();
