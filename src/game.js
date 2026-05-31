@@ -160,6 +160,10 @@ export class Game {
       if (this.fx) { this.fx.burst(pos, 0xff7a1a, 22, 16); this.fx.burst(pos, 0xffe14d, 14, 12); }
       if (this.audio) this.audio.play('hit');
     };
+    // Item-box pickup: a cheerful sparkle burst
+    this.items.onBoxGrab = (pos) => {
+      if (this.fx) this.fx.burst(pos, 0x66e0ff, 12, 9);
+    };
 
     // Particle FX
     this.fx = new FXSystem(this.scene);

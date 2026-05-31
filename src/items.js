@@ -17,7 +17,12 @@ export class ItemSystem {
   }
 
   _buildBoxes() {
-    const geo = new THREE.BoxGeometry(1.8, 1.8, 1.8);
+    // Shared geometries for a prettier item box: a faceted floating crystal
+    // (octahedron) with a glowing aura and a "?" mark on each face.
+    const crystalGeo = new THREE.OctahedronGeometry(1.05, 0);
+    const auraGeo = new THREE.OctahedronGeometry(1.35, 0);
+    const qTex = this._makeQuestionTexture();
+
     const fractions = [0.12, 0.45, 0.82];
     const offsets = [-4.5, 0, 4.5];
     for (const f of fractions) {
@@ -25,17 +30,53 @@ export class ItemSystem {
       const c = this.track.samples[idx];
       const n = this.track.normals[idx];
       for (const off of offsets) {
-        const mat = new THREE.MeshStandardMaterial({
-          color: 0xffe14d, emissive: 0xff8c00, emissiveIntensity: 0.5,
-          roughness: 0.35, metalness: 0.2, transparent: true, opacity: 0.92,
+        const g = new THREE.Group();
+
+        // glossy colored crystal
+        const crystalMat = new THREE.MeshStandardMaterial({
+          map: qTex, color: 0xffffff,
+          emissive: 0x33aaff, emissiveIntensity: 0.45,
+          roughness: 0.25, metalness: 0.35,
+          transparent: true, opacity: 0.95,
         });
-        const mesh = new THREE.Mesh(geo, mat);
-        const pos = new THREE.Vector3(c.x + n.x * off, 1.4, c.z + n.z * off);
-        mesh.position.copy(pos);
-        this.group.add(mesh);
-        this.boxes.push({ mesh, pos, active: true, respawn: 0 });
+        const crystal = new THREE.Mesh(crystalGeo, crystalMat);
+        g.add(crystal);
+
+        // soft glowing aura shell (additive-ish, no depth write)
+        const auraMat = new THREE.MeshBasicMaterial({
+          color: 0x66e0ff, transparent: true, opacity: 0.18, depthWrite: false,
+        });
+        const aura = new THREE.Mesh(auraGeo, auraMat);
+        g.add(aura);
+
+        const pos = new THREE.Vector3(c.x + n.x * off, 1.5, c.z + n.z * off);
+        g.position.copy(pos);
+        this.group.add(g);
+        this.boxes.push({
+          mesh: g, crystal, aura, pos,
+          active: true, respawn: 0,
+          spin: Math.random() * Math.PI * 2,
+          hue: Math.random() * Math.PI * 2,
+        });
       }
     }
+  }
+
+  // A canvas texture: translucent panel with a bold yellow "?" mark.
+  _makeQuestionTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#1b6fff';
+    ctx.fillRect(0, 0, 64, 64);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(4, 4, 56, 56);
+    ctx.fillStyle = '#ff8c00';
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('?', 32, 36);
+    return new THREE.CanvasTexture(canvas);
   }
 
   // Returns array of karts that just grabbed a box (and are free to receive an item).
@@ -43,22 +84,48 @@ export class ItemSystem {
     const pickups = [];
     for (const box of this.boxes) {
       if (box.active) {
-        box.mesh.rotation.y += dt * 2;
-        box.mesh.rotation.x += dt * 1.3;
-        box.mesh.position.y = 1.4 + Math.sin(time * 3 + box.pos.x) * 0.18;
+        // lively animation: spin on two axes, float up/down, pulse the aura,
+        // and slowly shift the emissive color through the rainbow.
+        box.spin += dt;
+        box.mesh.rotation.y += dt * 1.6;
+        box.mesh.rotation.x = Math.sin(box.spin * 0.8) * 0.4;
+        box.mesh.position.y = box.pos.y + Math.sin(box.spin * 2 + box.pos.x) * 0.25;
+        const grow = 1 + Math.sin(box.spin * 3) * 0.06;
+        box.crystal.scale.setScalar(grow);
+        const auraPulse = 1 + Math.sin(box.spin * 2.5) * 0.12;
+        box.aura.scale.setScalar(auraPulse);
+        box.aura.material.opacity = 0.14 + (Math.sin(box.spin * 2.5) + 1) * 0.05;
+        box.hue += dt * 0.6;
+        const r = Math.sin(box.hue) * 0.5 + 0.5;
+        const gr = Math.sin(box.hue + 2.1) * 0.5 + 0.5;
+        const b = Math.sin(box.hue + 4.2) * 0.5 + 0.5;
+        box.crystal.material.emissive.setRGB(r * 0.5, gr * 0.6, b);
+        // grow back in after respawning
+        if (box.popIn > 0) {
+          box.popIn -= dt;
+          const s = Math.max(0.01, 1 - box.popIn / 0.4);
+          box.mesh.scale.setScalar(s);
+          if (box.popIn <= 0) box.mesh.scale.setScalar(1);
+        }
         for (const k of karts) {
           if (k.finished || k.heldItem || k.roulette > 0) continue;
           if (dist2(k.pos, box.pos) < 9) {
             box.active = false;
             box.respawn = 4;
             box.mesh.visible = false;
+            if (this.onBoxGrab) this.onBoxGrab(box.pos); // pickup FX
             pickups.push(k);
             break;
           }
         }
       } else {
         box.respawn -= dt;
-        if (box.respawn <= 0) { box.active = true; box.mesh.visible = true; }
+        if (box.respawn <= 0) {
+          box.active = true;
+          box.mesh.visible = true;
+          box.popIn = 0.4; // pop-in grow animation
+          box.mesh.scale.setScalar(0.01);
+        }
       }
     }
 
@@ -127,25 +194,58 @@ export class ItemSystem {
 
   dropBanana(kart) {
     const fwd = kart.forward();
-    const pos = new THREE.Vector3(kart.pos.x - fwd.x * 2.4, 0.4, kart.pos.z - fwd.z * 2.4);
-    const mat = new THREE.MeshStandardMaterial({ color: 0xffe14d, roughness: 0.5 });
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 10), mat);
-    mesh.scale.set(1.1, 0.55, 0.7);
-    mesh.position.copy(pos);
-    this.group.add(mesh);
-    this.projectiles.push({ type: 'banana', pos, mesh, owner: kart, life: 22, arm: 0.7 });
+    const pos = new THREE.Vector3(kart.pos.x - fwd.x * 2.4, 0.45, kart.pos.z - fwd.z * 2.4);
+    const g = new THREE.Group();
+    const peelMat = new THREE.MeshStandardMaterial({ color: 0xffe14d, emissive: 0x6b5e00, emissiveIntensity: 0.25, roughness: 0.45 });
+    // curved banana body: a few tapering segments along an arc
+    const segs = 5;
+    for (let i = 0; i < segs; i++) {
+      const t = i / (segs - 1) - 0.5;          // -0.5..0.5
+      const r = 0.22 * (1 - Math.abs(t) * 1.2); // taper at the tips
+      const seg = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.06, r), 8, 8), peelMat);
+      seg.position.set(t * 1.2, Math.cos(t * Math.PI) * 0.28 - 0.1, 0);
+      g.add(seg);
+    }
+    // little dark tips
+    const tipMat = new THREE.MeshStandardMaterial({ color: 0x6b4a12, roughness: 0.6 });
+    for (const sx of [-1, 1]) {
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), tipMat);
+      tip.position.set(sx * 0.62, -0.05, 0);
+      g.add(tip);
+    }
+    g.position.copy(pos);
+    g.rotation.y = Math.random() * Math.PI * 2;
+    this.group.add(g);
+    this.projectiles.push({ type: 'banana', pos, mesh: g, owner: kart, life: 22, arm: 0.7 });
   }
 
   fireShell(kart) {
     const fwd = kart.forward();
     const pos = new THREE.Vector3(kart.pos.x + fwd.x * 2.6, 0.6, kart.pos.z + fwd.z * 2.6);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x2fd35a, emissive: 0x0e7a32, emissiveIntensity: 0.3, roughness: 0.4 });
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.7, 14, 12), mat);
-    mesh.scale.set(1, 0.8, 1);
-    mesh.position.copy(pos);
-    this.group.add(mesh);
+    const g = new THREE.Group();
+    // green shell: glossy dome + pale belly + dark rim
+    const dome = new THREE.Mesh(
+      new THREE.SphereGeometry(0.62, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.6),
+      new THREE.MeshStandardMaterial({ color: 0x2fd35a, emissive: 0x0e7a32, emissiveIntensity: 0.35, roughness: 0.3, metalness: 0.1 })
+    );
+    g.add(dome);
+    const belly = new THREE.Mesh(
+      new THREE.SphereGeometry(0.6, 16, 8, 0, Math.PI * 2, Math.PI * 0.6, Math.PI * 0.4),
+      new THREE.MeshStandardMaterial({ color: 0xfff4d6, roughness: 0.5 })
+    );
+    g.add(belly);
+    const rim = new THREE.Mesh(
+      new THREE.TorusGeometry(0.6, 0.08, 8, 18),
+      new THREE.MeshStandardMaterial({ color: 0x0e5a28, roughness: 0.5 })
+    );
+    rim.rotation.x = Math.PI / 2;
+    rim.position.y = 0.02;
+    g.add(rim);
+    g.scale.set(1, 0.85, 1);
+    g.position.copy(pos);
+    this.group.add(g);
     this.projectiles.push({
-      type: 'shell', pos, mesh, owner: kart, life: 3.0, seg: kart.segIndex,
+      type: 'shell', pos, mesh: g, owner: kart, life: 3.0, seg: kart.segIndex,
       vel: { x: fwd.x * SHELL_SPEED, z: fwd.z * SHELL_SPEED },
     });
   }

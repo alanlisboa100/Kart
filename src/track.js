@@ -101,13 +101,22 @@ export class Track {
 
   // Animate ambient sky traffic. Called by Game each frame.
   update(dt, time) {
-    if (!this.skyObjects) return;
-    for (const o of this.skyObjects) {
-      o.angle += o.speed * dt;
-      o.mesh.position.x = Math.cos(o.angle) * o.radius;
-      o.mesh.position.z = Math.sin(o.angle) * o.radius;
-      o.mesh.position.y = o.baseY + Math.sin(time * 0.5 + o.bobPhase) * 2.5;
-      o.mesh.rotation.y = -o.angle + Math.PI / 2; // face travel direction
+    if (this.skyObjects) {
+      for (const o of this.skyObjects) {
+        o.angle += o.speed * dt;
+        o.mesh.position.x = Math.cos(o.angle) * o.radius;
+        o.mesh.position.z = Math.sin(o.angle) * o.radius;
+        o.mesh.position.y = o.baseY + Math.sin(time * 0.5 + o.bobPhase) * 2.5;
+        o.mesh.rotation.y = -o.angle + Math.PI / 2; // face travel direction
+      }
+    }
+    // Pulsing boost-pad chevrons (a wave of glow running forward).
+    if (this.boostArrows) {
+      for (const a of this.boostArrows) {
+        const pulse = (Math.sin(time * 6 - a.phase * 3) + 1) * 0.5; // 0..1
+        a.mat.emissiveIntensity = 0.5 + pulse * 1.3;
+        a.mesh.position.y = a.baseY + pulse * 0.12;
+      }
     }
   }
 
@@ -326,22 +335,30 @@ export class Track {
 
   _buildBoostPads() {
     this._buildBoostZones();
-    const arrowMat = new THREE.MeshStandardMaterial({
-      color: 0x00f5d4, emissive: 0x00b4a0, emissiveIntensity: 0.8, roughness: 0.4,
-    });
+    this.boostArrows = [];
     for (const z of this.boostZones) {
       const center = Math.floor((z.from + z.to) / 2);
-      for (let j = -1; j <= 1; j++) {
+      for (let j = -2; j <= 2; j++) {
         const idx = ((center + j * 4) % this.N + this.N) % this.N;
         const c = this.samples[idx];
         const t = this.tangents[idx];
+        const n = this.normals[idx];
         const arrow = new THREE.Group();
-        const cone = new THREE.Mesh(new THREE.ConeGeometry(2.0, 3.0, 4), arrowMat);
-        cone.rotation.x = Math.PI / 2; // tip points forward (+Z local)
-        arrow.add(cone);
-        arrow.position.set(c.x, 0.09, c.z);
+        // each chevron has its own material so it can pulse independently
+        const mat = new THREE.MeshStandardMaterial({
+          color: 0x00f5d4, emissive: 0x00f5d4, emissiveIntensity: 1.0, roughness: 0.3,
+        });
+        // a wide flat chevron (two angled bars) lying on the road
+        for (const sx of [-1, 1]) {
+          const bar = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.12, 0.9), mat);
+          bar.position.set(sx * 1.0, 0, 0.0);
+          bar.rotation.y = sx * 0.6; // angle the two bars into a ">" shape
+          arrow.add(bar);
+        }
+        arrow.position.set(c.x, 0.12, c.z);
         arrow.rotation.y = Math.atan2(t.x, t.z);
         this.group.add(arrow);
+        this.boostArrows.push({ mesh: arrow, mat, phase: j * 0.4, baseY: 0.12 });
       }
     }
   }
