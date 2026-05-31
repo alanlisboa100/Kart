@@ -120,20 +120,53 @@ export function buildKart(kartDef) {
   nose.position.set(0, 0.5, 1.0);
   group.add(nose);
 
-  // Side pods
+  // Side pods (sculpted: tapered toward the back for a sportier look)
   for (const sx of [-1, 1]) {
-    const pod = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.34, 1.5), bodyMat);
-    pod.position.set(0.78 * sx, 0.45, 0.05);
+    const pod = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.36, 1.6), bodyMat);
+    pod.position.set(0.78 * sx, 0.46, 0.05);
     group.add(pod);
+    // pod intake (dark vent at the front of each pod)
+    const intake = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.18), mat(0x111418, { rough: 0.5 }));
+    intake.position.set(0.78 * sx, 0.5, 0.9);
+    group.add(intake);
   }
 
-  // Headlights
-  const lightMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff0b0, emissiveIntensity: 0.7, roughness: 0.3 });
+  // Hood scoop on the nose
+  const scoop = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.16, 0.5), accentMat);
+  scoop.position.set(0, 0.66, 0.7);
+  group.add(scoop);
+
+  // Rear diffuser (angled panel under the back)
+  const diffuser = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.12, 0.5), mat(0x15171c, { rough: 0.6 }));
+  diffuser.position.set(0, 0.34, -1.12);
+  diffuser.rotation.x = 0.35;
+  group.add(diffuser);
+
+  // Underglow strip (subtle neon accent under the chassis)
+  const glow = new THREE.Mesh(
+    new THREE.BoxGeometry(1.5, 0.05, 2.0),
+    new THREE.MeshBasicMaterial({ color: kartDef.accent, transparent: true, opacity: 0.5 })
+  );
+  glow.position.y = 0.14;
+  group.add(glow);
+
+  // Headlights (lens housing + bright lens)
+  const lightMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff0b0, emissiveIntensity: 0.9, roughness: 0.2 });
+  const lightHousingMat = mat(0x222831, { metal: 0.5, rough: 0.3 });
   for (const sx of [-1, 1]) {
-    const light = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), lightMat);
-    light.position.set(0.28 * sx, 0.56, 1.42);
+    const housing = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.12), lightHousingMat);
+    housing.position.set(0.34 * sx, 0.6, 1.43);
+    group.add(housing);
+    const light = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), lightMat);
+    light.scale.set(1.2, 0.8, 0.6);
+    light.position.set(0.34 * sx, 0.6, 1.5);
     group.add(light);
   }
+
+  // Roll bar behind the driver (sporty silhouette)
+  const rollBar = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.06, 8, 16, Math.PI), mat(0xced3da, { metal: 0.7, rough: 0.3 }));
+  rollBar.position.set(0, 1.0, -0.5);
+  group.add(rollBar);
 
   // Tail lights (red, glowing) at the back
   const tailMat = new THREE.MeshStandardMaterial({ color: 0xff2a2a, emissive: 0xff1a1a, emissiveIntensity: 0.8, roughness: 0.4 });

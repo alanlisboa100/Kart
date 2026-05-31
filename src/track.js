@@ -39,11 +39,148 @@ export class Track {
     this._buildCenterLine();
     this._buildFences();
     this._buildTracksideProps();
+    this._buildCity();
+    this._buildSkyTraffic();
     this._buildStartLine();
     this._buildStartGantry();
     this._buildGrandstands();
     this._buildBoostPads();
     this._buildDecorations();
+  }
+
+  // Floating ambience that gently moves: blimps / hot-air balloons drifting
+  // high above the circuit. Animated each frame via update().
+  _buildSkyTraffic() {
+    this.skyObjects = [];
+    const dark = this.theme.sky < 0x333333;
+    const palette = [0xff5a5f, 0xffd23f, 0x3d8bff, 0x2ec4b6, 0xff7ad1, 0x9b5de5];
+    const count = 5;
+    for (let i = 0; i < count; i++) {
+      const g = new THREE.Group();
+      const color = palette[i % palette.length];
+      const isBlimp = i % 2 === 0;
+      if (isBlimp) {
+        const body = new THREE.Mesh(
+          new THREE.SphereGeometry(5, 14, 10),
+          new THREE.MeshStandardMaterial({ color, roughness: 0.5, emissive: dark ? color : 0x000000, emissiveIntensity: dark ? 0.3 : 0 })
+        );
+        body.scale.set(2.2, 1, 1);
+        g.add(body);
+        const fin = new THREE.Mesh(new THREE.BoxGeometry(2, 2.4, 0.3), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }));
+        fin.position.set(-9, 0, 0);
+        g.add(fin);
+        const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1, 1.2), new THREE.MeshStandardMaterial({ color: 0x333a45, roughness: 0.6 }));
+        cabin.position.set(0, -1.4, 0);
+        g.add(cabin);
+      } else {
+        const balloon = new THREE.Mesh(
+          new THREE.SphereGeometry(4, 14, 12),
+          new THREE.MeshStandardMaterial({ color, roughness: 0.5 })
+        );
+        balloon.scale.set(1, 1.2, 1);
+        g.add(balloon);
+        const basket = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.2, 1.4), new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.9 }));
+        basket.position.y = -5.2;
+        g.add(basket);
+      }
+      // distribute around the circuit, high up
+      const ang = (i / count) * Math.PI * 2;
+      const radius = 140 + i * 18;
+      g.position.set(Math.cos(ang) * radius, 55 + i * 8, Math.sin(ang) * radius);
+      this.group.add(g);
+      this.skyObjects.push({
+        mesh: g,
+        angle: ang,
+        radius,
+        speed: 0.04 + Math.random() * 0.05,
+        bobPhase: Math.random() * Math.PI * 2,
+        baseY: g.position.y,
+      });
+    }
+  }
+
+  // Animate ambient sky traffic. Called by Game each frame.
+  update(dt, time) {
+    if (!this.skyObjects) return;
+    for (const o of this.skyObjects) {
+      o.angle += o.speed * dt;
+      o.mesh.position.x = Math.cos(o.angle) * o.radius;
+      o.mesh.position.z = Math.sin(o.angle) * o.radius;
+      o.mesh.position.y = o.baseY + Math.sin(time * 0.5 + o.bobPhase) * 2.5;
+      o.mesh.rotation.y = -o.angle + Math.PI / 2; // face travel direction
+    }
+  }
+
+  // A ring of buildings around the circuit so the world feels like a living
+  // city skyline rather than empty space. Windows are baked into a texture.
+  _buildCity() {
+    const rng = mulberry32(0x01CE ^ hashStr(this.def.id));
+    const dark = this.theme.sky < 0x333333; // neon/night themes
+    const wallColors = dark
+      ? [0x2a2740, 0x1f2a44, 0x33264d, 0x222b3a]
+      : [0xb9c2d0, 0xd6c7a8, 0xc9d3dd, 0xa8b8c8, 0xe0d2c0];
+    const litColor = dark ? '#ffe27a' : '#bfe6ff';
+    const offColor = dark ? '#1b2233' : '#5a6473';
+
+    // Shared window texture (a grid of lit/unlit windows)
+    const makeWindowTex = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 32; canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = dark ? '#10131f' : '#3a4250';
+      ctx.fillRect(0, 0, 32, 64);
+      for (let y = 2; y < 64; y += 6) {
+        for (let x = 3; x < 32; x += 7) {
+          ctx.fillStyle = rng() > 0.45 ? litColor : offColor;
+          ctx.fillRect(x, y, 4, 4);
+        }
+      }
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    };
+    const winTexA = makeWindowTex();
+    const winTexB = makeWindowTex();
+
+    const ringCount = 46;
+    for (let i = 0; i < ringCount; i++) {
+      // sample points around the loop and push buildings far outside the track
+      const idx = Math.floor((i / ringCount) * this.N + rng() * 6);
+      const c = this.samples[idx % this.N];
+      const n = this.normals[idx % this.N];
+      const side = rng() < 0.5 ? 1 : -1;
+      const dist = this.halfWidth + 55 + rng() * 130;
+      const h = 14 + rng() * 60;
+      const w = 8 + rng() * 12;
+      const d = 8 + rng() * 12;
+      const tex = (rng() > 0.5 ? winTexA : winTexB);
+      const repU = Math.max(1, Math.round(w / 6));
+      const repV = Math.max(2, Math.round(h / 6));
+      const bMat = new THREE.MeshStandardMaterial({
+        color: wallColors[Math.floor(rng() * wallColors.length)],
+        roughness: 0.85,
+        map: tex,
+        emissive: dark ? 0x2a2333 : 0x000000,
+        emissiveIntensity: dark ? 0.25 : 0,
+      });
+      // clone the texture's repeat per building without re-uploading the image
+      bMat.map = tex.clone();
+      bMat.map.needsUpdate = true;
+      bMat.map.wrapS = bMat.map.wrapT = THREE.RepeatWrapping;
+      bMat.map.repeat.set(repU, repV);
+      const building = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bMat);
+      building.position.set(c.x + n.x * dist * side, h / 2 - 0.05, c.z + n.z * dist * side);
+      building.rotation.y = rng() * Math.PI;
+      this.group.add(building);
+
+      // rooftop cap / antenna for variety
+      if (rng() > 0.5) {
+        const capMat = new THREE.MeshStandardMaterial({ color: dark ? 0xff2e97 : 0x8a93a3, emissive: dark ? 0xff2e97 : 0x000000, emissiveIntensity: dark ? 0.5 : 0, roughness: 0.5 });
+        const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 4 + rng() * 6, 6), capMat);
+        antenna.position.set(building.position.x, h + 2, building.position.z);
+        this.group.add(antenna);
+      }
+    }
   }
 
   // Cones, tire stacks and billboards lining the track to fill it out.

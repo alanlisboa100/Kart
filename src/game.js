@@ -233,6 +233,7 @@ export class Game {
       }
       // hold karts still during countdown
       for (const k of this.karts) k.update(0, { throttle: 0, brake: 0, steer: 0, drift: false }, this.track);
+      if (this.track) this.track.update(dt, this.raceTime);
       this._followCamera(dt, true);
       return;
     }
@@ -259,6 +260,7 @@ export class Game {
       this._updateRanking();
       this._updateItems(dt);
       this._separateKarts();
+      if (this.track) this.track.update(dt, this.raceTime);
       if (this.fx) this.fx.update(dt);
       this._followCamera(dt, false);
       this._updateHud();
