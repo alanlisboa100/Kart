@@ -111,6 +111,37 @@ export class Track {
     }
   }
 
+  // --- Placement helpers: keep scenery OFF the track ---
+  // Squared min distance from (x,z) to the track centerline (downsampled for speed).
+  _minDistToTrackSq(x, z) {
+    let best = Infinity;
+    for (let i = 0; i < this.N; i += 4) {
+      const s = this.samples[i];
+      const dx = x - s.x, dz = z - s.z;
+      const d = dx * dx + dz * dz;
+      if (d < best) best = d;
+    }
+    return best;
+  }
+
+  // Find a point near sample `idx` on the given side that is at least
+  // `clearance` away from EVERY part of the track (handles loop-backs in
+  // tight curves). Pushes further out if the first spot is too close.
+  // Returns {x, z} or null if no clear spot was found.
+  _placeOutside(idx, side, baseDist, clearance) {
+    const i = ((idx % this.N) + this.N) % this.N;
+    const c = this.samples[i];
+    const n = this.normals[i];
+    const cl2 = clearance * clearance;
+    for (let extra = 0; extra <= 140; extra += 8) {
+      const dist = baseDist + extra;
+      const x = c.x + n.x * dist * side;
+      const z = c.z + n.z * dist * side;
+      if (this._minDistToTrackSq(x, z) >= cl2) return { x, z };
+    }
+    return null;
+  }
+
   // A ring of buildings around the circuit so the world feels like a living
   // city skyline rather than empty space. Windows are baked into a texture.
   _buildCity() {
@@ -144,15 +175,16 @@ export class Track {
 
     const ringCount = 46;
     for (let i = 0; i < ringCount; i++) {
-      // sample points around the loop and push buildings far outside the track
       const idx = Math.floor((i / ringCount) * this.N + rng() * 6);
-      const c = this.samples[idx % this.N];
-      const n = this.normals[idx % this.N];
       const side = rng() < 0.5 ? 1 : -1;
-      const dist = this.halfWidth + 55 + rng() * 130;
       const h = 14 + rng() * 60;
       const w = 8 + rng() * 12;
       const d = 8 + rng() * 12;
+      // Place far outside the track, guaranteed clear of EVERY part of the loop.
+      const baseDist = this.halfWidth + 55 + rng() * 110;
+      const clearance = this.halfWidth + 42 + Math.max(w, d);
+      const spot = this._placeOutside(idx, side, baseDist, clearance);
+      if (!spot) continue; // no clear room here (tight inner curve) -> skip
       const tex = (rng() > 0.5 ? winTexA : winTexB);
       const repU = Math.max(1, Math.round(w / 6));
       const repV = Math.max(2, Math.round(h / 6));
@@ -169,8 +201,9 @@ export class Track {
       bMat.map.wrapS = bMat.map.wrapT = THREE.RepeatWrapping;
       bMat.map.repeat.set(repU, repV);
       const building = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bMat);
-      building.position.set(c.x + n.x * dist * side, h / 2 - 0.05, c.z + n.z * dist * side);
+      building.position.set(spot.x, h / 2 - 0.05, spot.z);
       building.rotation.y = rng() * Math.PI;
+      building.userData.scenery = true;
       this.group.add(building);
 
       // rooftop cap / antenna for variety
@@ -233,6 +266,8 @@ export class Track {
     };
 
     // Sprinkle props around the loop, alternating sides.
+    const propClear = this.halfWidth + 1.5;
+    const propClear2 = propClear * propClear;
     for (let i = 0; i < this.N; i += 9) {
       const r = rng();
       const side = (i % 18 === 0) ? 1 : -1;
@@ -245,8 +280,14 @@ export class Track {
       else if (r < 0.78) { prop = makeTireStack(); dist = off + 0.5; }
       else if (r < 0.86) { prop = makeBillboard(); dist = off + 6 + rng() * 4; }
       if (!prop) continue;
-      prop.position.set(c.x + n.x * dist * side, 0, c.z + n.z * dist * side);
+      const px = c.x + n.x * dist * side;
+      const pz = c.z + n.z * dist * side;
+      // Skip if this spot is actually close to another part of the track
+      // (prevents props popping up on a loop-back through tight curves).
+      if (this._minDistToTrackSq(px, pz) < propClear2) continue;
+      prop.position.set(px, 0, pz);
       prop.rotation.y = Math.atan2(t.x, t.z);
+      prop.userData.scenery = true;
       this.group.add(prop);
     }
   }
@@ -514,13 +555,13 @@ export class Track {
 
     const place = (startIdx, side) => {
       const idx = ((startIdx % this.N) + this.N) % this.N;
-      const c = this.samples[idx];
-      const n = this.normals[idx];
       const t = this.tangents[idx];
-      const off = this.halfWidth + 10;
-      const bx = c.x + n.x * off * side;
-      const bz = c.z + n.z * off * side;
       const heading = Math.atan2(t.x, t.z);
+      // Guarantee the whole stand sits clear of every part of the track.
+      const spot = this._placeOutside(idx, side, this.halfWidth + 12, this.halfWidth + 22);
+      if (!spot) return; // no clear room at this spot (tight curve) -> skip
+      const bx = spot.x;
+      const bz = spot.z;
 
       const stand = new THREE.Group();
       const WIDTH = 26;
@@ -569,6 +610,7 @@ export class Track {
 
       stand.position.set(bx, 0, bz);
       stand.rotation.y = heading + (side < 0 ? Math.PI : 0);
+      stand.userData.scenery = true;
       this.group.add(stand);
     };
 
@@ -624,11 +666,17 @@ export class Track {
       const dist = this.halfWidth + 5 + rng() * 40;
       const c = this.samples[idx];
       const n = this.normals[idx];
+      const x = c.x + n.x * dist * side;
+      const z = c.z + n.z * dist * side;
+      // keep scenery off the track even where the loop comes back around
+      const clear = this.halfWidth + 3;
+      if (this._minDistToTrackSq(x, z) < clear * clear) continue;
       const d = makeOne();
-      d.position.set(c.x + n.x * dist * side, 0, c.z + n.z * dist * side);
+      d.position.set(x, 0, z);
       const s = 0.7 + rng() * 0.9;
       d.scale.setScalar(s);
       d.rotation.y = rng() * Math.PI * 2;
+      d.userData.scenery = true;
       this.group.add(d);
     }
   }
