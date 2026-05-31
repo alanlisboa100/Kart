@@ -1,8 +1,10 @@
 {
+  "id": "/Kart/",
   "name": "KARTOPIA",
   "short_name": "KARTOPIA",
   "description": "Jogo de kart 3D estilo Wii - derrape, turbine e vença!",
   "lang": "pt-BR",
+  "categories": ["games", "entertainment"],
   "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreen",
