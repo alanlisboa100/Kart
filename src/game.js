@@ -4,6 +4,7 @@ import { Track } from './track.js';
 import { Kart } from './kart.js';
 import { AIController } from './ai.js';
 import { ItemSystem } from './items.js';
+import { FXSystem } from './fx.js';
 import { CHARACTERS, KARTS } from './data.js';
 
 export class Game {
@@ -35,6 +36,8 @@ export class Game {
     this.player = null;
     this.track = null;
     this.items = null;
+    this.fx = null;
+    this.shake = 0;          // current screen-shake magnitude (decays)
     this._wasBoosting = false;
     this._lastCount = null;
     this.state = 'idle'; // idle | countdown | racing | finished
@@ -149,7 +152,12 @@ export class Game {
     this.items = new ItemSystem(this.scene, this.track);
     this.items.onHit = (kart, type) => {
       if (this.audio && kart === this.player) this.audio.play('hit');
+      if (this.fx) this.fx.burst(kart.pos, 0xff4444, 16, 12);
+      if (kart === this.player) this.addShake(0.7);
     };
+
+    // Particle FX
+    this.fx = new FXSystem(this.scene);
 
     // Build grid: player + opponents
     const grid = [];
@@ -244,6 +252,8 @@ export class Game {
 
       this._updateRanking();
       this._updateItems(dt);
+      this._updateCollisions(dt);
+      if (this.fx) this.fx.update(dt);
       this._followCamera(dt, false);
       this._updateHud();
       this._updateAudio();
@@ -343,6 +353,60 @@ export class Game {
     }
   }
 
+  addShake(amount) {
+    this.shake = Math.min(1.4, this.shake + amount);
+  }
+
+  _updateCollisions(dt) {
+    const R = 2.4; // kart collision radius
+    const minDist = R * 2;
+    const karts = this.karts;
+
+    // Kart-to-kart bumping (resolve pairs)
+    for (let i = 0; i < karts.length; i++) {
+      const a = karts[i];
+      for (let j = i + 1; j < karts.length; j++) {
+        const b = karts[j];
+        const dx = b.pos.x - a.pos.x;
+        const dz = b.pos.z - a.pos.z;
+        const d = Math.hypot(dx, dz);
+        if (d > 0 && d < minDist) {
+          const nx = dx / d, nz = dz / d;
+          const overlap = (minDist - d);
+          const push = overlap / 2;
+          a.pos.x -= nx * push; a.pos.z -= nz * push;
+          b.pos.x += nx * push; b.pos.z += nz * push;
+          // gentle arcade exchange of speed
+          const relClosing = (a.speed - b.speed);
+          const kick = Math.min(8, Math.abs(relClosing) * 0.5 + 3);
+          a.speed = Math.max(-a.maxSpeed * 0.3, a.speed - kick * 0.4);
+          b.speed = Math.min(b.maxSpeed, b.speed + kick * 0.25);
+          a.heading -= nx * 0.04;
+          b.heading += nx * 0.04;
+
+          const mid = { x: (a.pos.x + b.pos.x) / 2, y: 0.6, z: (a.pos.z + b.pos.z) / 2 };
+          if (this.fx) this.fx.burst(mid, 0xffe14d, 8, 8);
+          if (a === this.player || b === this.player) {
+            if (this.audio) this.audio.play('bump');
+            this.addShake(0.5);
+          }
+        }
+      }
+    }
+
+    // Wall impacts (consume the flag each kart set during its update)
+    for (const k of karts) {
+      if (k.wallHit) {
+        if (this.fx) this.fx.burst(k.wallHit, 0xffffff, 10, 9);
+        if (k === this.player) {
+          if (this.audio) this.audio.play('wall');
+          this.addShake(0.4 + k.wallHit.mag * 0.6);
+        }
+        k.wallHit = null;
+      }
+    }
+  }
+
   _updateAudio() {
     if (!this.audio) return;
     const p = this.player;
@@ -399,6 +463,16 @@ export class Game {
     );
     this.camera.lookAt(this.camTarget);
 
+    // Screen shake (decays). Applied as a small random camera offset.
+    if (this.shake > 0.001) {
+      const s = this.shake;
+      this.camera.position.x += (Math.random() - 0.5) * s * 1.6;
+      this.camera.position.y += (Math.random() - 0.5) * s * 1.2;
+      this.camera.position.z += (Math.random() - 0.5) * s * 1.6;
+      this.shake *= Math.pow(0.0025, dt); // fast decay, frame-rate independent
+      if (this.shake < 0.02) this.shake = 0;
+    }
+
     // Dynamic FOV: widens with speed and pops on boost for a rush feeling.
     const targetFov = this.baseFov + speedFactor * 6 + (boosting ? 8 : 0);
     this.fov += (targetFov - this.fov) * (1 - Math.pow(0.02, dt));
@@ -414,6 +488,8 @@ export class Game {
     this.ai.clear();
     this.player = null;
     if (this.items) { this.items.dispose(); this.items = null; }
+    if (this.fx) { this.fx.dispose(); this.fx = null; }
+    this.shake = 0;
     if (this.audio) { this.audio.stopEngine(); this.audio.stopMusic(); }
     if (this.sky) {
       this.scene.remove(this.sky);

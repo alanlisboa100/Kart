@@ -113,6 +113,8 @@ export class AudioManager {
       case 'shell': this.sweep(950, 380, 0.18, 'square', 0.25); break;
       case 'lightning': this.noiseBurst(0.45, 0.35); this.sweep(1300, 90, 0.55, 'sawtooth', 0.35); break;
       case 'drift': this.blip(1500, 0.05, 'sawtooth', 0.12); break;
+      case 'bump': this.blip(150, 0.12, 'square', 0.3); this.noiseBurst(0.1, 0.18); break;
+      case 'wall': this.sweep(220, 60, 0.2, 'sawtooth', 0.3); this.noiseBurst(0.14, 0.22); break;
     }
   }
 

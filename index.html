@@ -31,10 +31,15 @@
 
     <!-- Title -->
     <section id="screen-title" class="screen active">
+      <div class="menu-bg" aria-hidden="true">
+        <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span>
+        <span class="streak s1"></span><span class="streak s2"></span><span class="streak s3"></span>
+      </div>
       <div class="title-wrap">
+        <div class="logo-badge">🏁</div>
         <h1 class="logo">KART<span>OPIA</span></h1>
         <p class="tagline">Derrape, turbine, vença. 🏎️💨</p>
-        <button class="btn-primary" id="btn-play">JOGAR</button>
+        <button class="btn-primary btn-big" id="btn-play">▶ JOGAR</button>
         <p class="hint">Estilo Wii • 8 pilotos • 6 karts • 10 pistas • itens 🍌⚡</p>
       </div>
     </section>
@@ -94,12 +99,14 @@
 
     <!-- Touch controls -->
     <div id="touch" class="hidden">
-      <!-- Analog joystick (left thumb) -->
+      <!-- Left-half capture zone: touch anywhere here to spawn the joystick -->
+      <div id="joy-zone" class="joy-zone"></div>
+      <!-- Floating joystick ring (moves to where you touch) -->
       <div id="joystick" class="joystick">
         <div class="joy-ring"></div>
         <div id="joy-knob" class="joy-knob"></div>
-        <span class="joy-hint">↤ dirigir ↦</span>
       </div>
+      <span class="joy-hint">deslize aqui para dirigir</span>
       <!-- Action buttons (right thumb) -->
       <div class="touch-right">
         <div class="action-row">
@@ -107,7 +114,7 @@
           <button class="tbtn drift" data-btn="drift">DRIFT</button>
         </div>
         <div class="action-row">
-          <button class="tbtn brake" data-btn="brake">BREK</button>
+          <button class="tbtn brake" data-btn="brake">FREIO</button>
           <button class="tbtn gas" data-btn="gas">GÁS</button>
         </div>
       </div>
@@ -134,10 +141,27 @@
     }, 9000);
   </script>
   <script>
-    // Register service worker so KARTOPIA is installable & works offline.
+    // Register SW; auto-activate & reload when a new version is published so
+    // players always get the latest build (no manual cache clearing).
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('./sw.js').catch(function () {});
+        navigator.serviceWorker.register('./sw.js').then(function (reg) {
+          reg.addEventListener('updatefound', function () {
+            var nw = reg.installing;
+            if (!nw) return;
+            nw.addEventListener('statechange', function () {
+              if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                nw.postMessage('skipWaiting');
+              }
+            });
+          });
+        }).catch(function () {});
+        var refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
       });
     }
   </script>

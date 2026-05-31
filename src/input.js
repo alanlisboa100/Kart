@@ -1,22 +1,23 @@
-// KARTOPIA - input: analog touch joystick (left thumb) + action buttons (right),
-// plus full keyboard support. Exposes { throttle, brake, steer, drift } and a
-// one-shot "use item" poll. Steer is a continuous axis in [-1, 1].
+// KARTOPIA - input: FLOATING analog joystick (touch anywhere on the left half
+// of the screen and the stick spawns under your thumb) + action buttons on the
+// right + full keyboard support.
+// Exposes { throttle, brake, steer, drift } and a one-shot "use item" poll.
 
 export class Input {
   constructor() {
     this.keys = {};
-    // button states (gas/brake/drift come from on-screen buttons or keys)
     this.btn = { gas: false, brake: false, drift: false };
     this._useQueued = false;
 
-    // Joystick state
     this.joy = {
       active: false,
-      id: null,        // touch identifier currently controlling the stick
-      cx: 0, cy: 0,    // base center (px)
+      id: null,        // touch identifier controlling the stick
+      ox: 0, oy: 0,    // origin (where the thumb first touched)
       x: 0,            // normalized -1..1 horizontal
       radius: 60,      // px travel for full deflection
     };
+    this.joyBase = null;   // the visual ring element (moved to the touch origin)
+    this.joyKnob = null;
 
     window.addEventListener('keydown', (e) => this._key(e, true));
     window.addEventListener('keyup', (e) => this._key(e, false));
@@ -32,68 +33,74 @@ export class Input {
   queueUse() { this._useQueued = true; }
   pollUse() { const v = this._useQueued; this._useQueued = false; return v; }
 
-  // ---- Joystick binding ----
-  // base: the element acting as the joystick zone; knob: the moving thumb dot.
-  bindJoystick(base, knob) {
+  // zone: a full-height element covering the LEFT half of the screen (capture area)
+  // base: the visual joystick ring (absolutely positioned, moved to thumb)
+  // knob: the moving thumb dot inside base
+  bindJoystick(zone, base, knob) {
+    this.joyZone = zone;
     this.joyBase = base;
     this.joyKnob = knob;
 
+    const radiusFor = () => Math.max(50, Math.min(window.innerWidth, window.innerHeight) * 0.13);
+
     const start = (clientX, clientY, id) => {
-      const rect = base.getBoundingClientRect();
-      // center the stick wherever the thumb lands inside the zone
       this.joy.active = true;
       this.joy.id = id;
-      this.joy.cx = clientX;
-      this.joy.cy = clientY;
-      this.joy.radius = Math.max(46, Math.min(rect.width, rect.height) * 0.42);
-      this._moveKnob(0, 0);
+      this.joy.ox = clientX;
+      this.joy.oy = clientY;
+      this.joy.radius = radiusFor();
+      // Show & position the ring at the touch point.
+      base.style.left = clientX + 'px';
+      base.style.top = clientY + 'px';
       base.classList.add('active');
+      this._moveKnob(0, 0);
     };
     const move = (clientX, clientY) => {
       if (!this.joy.active) return;
-      let dx = clientX - this.joy.cx;
-      let dy = clientY - this.joy.cy;
+      let dx = clientX - this.joy.ox;
+      let dy = clientY - this.joy.oy;
       const r = this.joy.radius;
       const len = Math.hypot(dx, dy);
       if (len > r) { dx = (dx / len) * r; dy = (dy / len) * r; }
-      this.joy.x = dx / r; // -1..1
+      this.joy.x = dx / r;
       this._moveKnob(dx, dy);
     };
     const end = () => {
       this.joy.active = false;
       this.joy.id = null;
       this.joy.x = 0;
-      this._moveKnob(0, 0);
       base.classList.remove('active');
+      this._moveKnob(0, 0);
     };
 
-    base.addEventListener('touchstart', (e) => {
-      e.preventDefault();
+    zone.addEventListener('touchstart', (e) => {
+      if (this.joy.active) return;
       const t = e.changedTouches[0];
+      e.preventDefault();
       start(t.clientX, t.clientY, t.identifier);
     }, { passive: false });
-    base.addEventListener('touchmove', (e) => {
+    zone.addEventListener('touchmove', (e) => {
       for (const t of e.changedTouches) {
         if (t.identifier === this.joy.id) { e.preventDefault(); move(t.clientX, t.clientY); }
       }
     }, { passive: false });
-    const touchEnd = (e) => {
+    const tEnd = (e) => {
       for (const t of e.changedTouches) if (t.identifier === this.joy.id) { e.preventDefault(); end(); }
     };
-    base.addEventListener('touchend', touchEnd, { passive: false });
-    base.addEventListener('touchcancel', touchEnd, { passive: false });
+    zone.addEventListener('touchend', tEnd, { passive: false });
+    zone.addEventListener('touchcancel', tEnd, { passive: false });
 
     // Mouse (desktop testing)
-    base.addEventListener('mousedown', (e) => { e.preventDefault(); start(e.clientX, e.clientY, 'mouse'); });
+    zone.addEventListener('mousedown', (e) => { e.preventDefault(); start(e.clientX, e.clientY, 'mouse'); });
     window.addEventListener('mousemove', (e) => { if (this.joy.id === 'mouse') move(e.clientX, e.clientY); });
     window.addEventListener('mouseup', () => { if (this.joy.id === 'mouse') end(); });
   }
 
   _moveKnob(dx, dy) {
-    if (this.joyKnob) this.joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+    if (this.joyKnob) this.joyKnob.style.transform = `translate(-50%, -50%) translate(${dx}px, ${dy}px)`;
   }
 
-  // ---- Action buttons (gas/brake/drift/item) ----
+  // Action buttons (gas/brake/drift/item)
   bindButtons(root) {
     root.querySelectorAll('[data-btn]').forEach((el) => {
       const name = el.dataset.btn;
@@ -122,8 +129,8 @@ export class Input {
     for (const k in this.btn) this.btn[k] = false;
     this._useQueued = false;
     this.joy.active = false; this.joy.id = null; this.joy.x = 0;
-    this._moveKnob(0, 0);
     if (this.joyBase) this.joyBase.classList.remove('active');
+    this._moveKnob(0, 0);
   }
 
   get state() {
@@ -133,10 +140,8 @@ export class Input {
     const kbSteer = (k['arrowright'] || k['d'] ? 1 : 0) - (k['arrowleft'] || k['a'] ? 1 : 0);
     const drift = k[' '] || k['shift'] || this.btn.drift;
 
-    // Joystick takes priority when engaged; otherwise keyboard.
     let steer = this.joy.active ? this.joy.x : kbSteer;
-    // small dead-zone for comfort
-    if (Math.abs(steer) < 0.06) steer = 0;
+    if (Math.abs(steer) < 0.06) steer = 0; // dead-zone
 
     return {
       throttle: up ? 1 : 0,

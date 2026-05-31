@@ -51,6 +51,7 @@ export class Kart {
     this.steerSmooth = 0;   // smoothed steering axis for buttery turns
     this.bob = Math.random() * Math.PI * 2; // idle bob phase
     this.bobOffset = 0;
+    this.wallHit = null;    // set on a strong wall impact, consumed by Game for FX
 
     // Drift state
     this.drifting = false;
@@ -227,7 +228,15 @@ export class Kart {
       // Only scrub the speed that's heading INTO the wall, then steer parallel.
       const fwd = this.forward();
       const into = (fwd.x * info.normal.x + fwd.z * info.normal.z) * sign; // >0 = into wall
-      if (into > 0) this.speed *= 1 - Math.min(0.55, into * 0.6);
+      if (into > 0) {
+        const before = this.speed;
+        this.speed *= 1 - Math.min(0.55, into * 0.6);
+        // Flag a wall impact (for FX/sound) when it's a meaningful hit.
+        const lost = before - this.speed;
+        if (into > 0.35 && lost > 4) {
+          this.wallHit = { x: this.pos.x, y: 0.5, z: this.pos.z, mag: Math.min(1, lost / 18) };
+        }
+      }
       const tangentHeading = Math.atan2(info.tangent.x, info.tangent.z);
       this.heading = angleLerp(this.heading, tangentHeading, 0.18);
       if (this.drifting) this._releaseDrift();

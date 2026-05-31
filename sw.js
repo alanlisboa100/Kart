@@ -1,5 +1,7 @@
-// KARTOPIA service worker - enables offline play and "installable" PWA/APK.
-const CACHE = 'kartopia-v1';
+// KARTOPIA service worker - offline play + installable PWA/APK.
+// IMPORTANT: network-first for our own files so updates ALWAYS reach the player.
+// (The previous cache-first version made people see an old build.)
+const CACHE = 'kartopia-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -17,6 +19,7 @@ const ASSETS = [
   './src/input.js',
   './src/builders.js',
   './src/data.js',
+  './src/fx.js',
 ];
 
 self.addEventListener('install', (e) => {
@@ -27,29 +30,48 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
+});
+
+// Allow the page to tell a waiting SW to take over immediately.
+self.addEventListener('message', (e) => {
+  if (e.data === 'skipWaiting') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
-  // Cache-first for our own assets; network-first fallback for the rest (CDN).
-  e.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req)
+
+  const url = new URL(req.url);
+  const sameOrigin = url.origin === self.location.origin;
+
+  if (sameOrigin) {
+    // NETWORK-FIRST for our own files: always try fresh, fall back to cache offline.
+    e.respondWith(
+      fetch(req)
         .then((res) => {
-          // cache the three.js CDN module too, so it works offline next time
-          if (req.url.includes('cdn.jsdelivr.net')) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+          return res;
+        })
+        .catch(() => caches.match(req).then((c) => c || caches.match('./index.html')))
+    );
+  } else {
+    // CACHE-FIRST for the CDN (three.js) so it loads instantly & works offline.
+    e.respondWith(
+      caches.match(req).then((cached) => {
+        if (cached) return cached;
+        return fetch(req).then((res) => {
+          if (url.href.includes('cdn.jsdelivr.net')) {
             const copy = res.clone();
             caches.open(CACHE).then((c) => c.put(req, copy));
           }
           return res;
-        })
-        .catch(() => cached);
-    })
-  );
+        });
+      })
+    );
+  }
 });
