@@ -115,6 +115,10 @@ export class AudioManager {
       case 'drift': this.blip(1500, 0.05, 'sawtooth', 0.12); break;
       case 'bump': this.blip(150, 0.12, 'square', 0.3); this.noiseBurst(0.1, 0.18); break;
       case 'wall': this.sweep(220, 60, 0.2, 'sawtooth', 0.3); this.noiseBurst(0.14, 0.22); break;
+      case 'coin':
+        this.blip(1320, 0.06, 'square', 0.22, 0);
+        this.blip(1760, 0.10, 'square', 0.22, 0.05);
+        break;
     }
   }
 

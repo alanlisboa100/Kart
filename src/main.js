@@ -27,6 +27,7 @@ const hud = {
   setSpeed: (s) => ($('#hud-speed').textContent = s),
   setTime: (sec) => ($('#hud-time').textContent = fmtTime(sec)),
   setDrift: (tier) => { driftMeter.className = 'drift-meter' + (tier ? ' t' + tier : ''); },
+  setCoins: (n) => { const el = $('#hud-coins'); if (el) el.querySelector('span').textContent = n; },
   setItem: (name) => {
     const el = $('#hud-item');
     if (!name) { el.textContent = ''; el.className = 'hud-item empty'; return; }
@@ -334,20 +335,23 @@ function onRaceFinish(standings) {
   const me = standings.find((s) => s.isPlayer);
   const place = me ? me.place : 6;
 
+  // Coins collected on the track this race become bonus economy coins.
+  const collected = (game.player && game.player.coins) ? game.player.coins : 0;
+
   // Time Trial: show the lap time + best-time record, no coin/place rewards.
   if (session && session.mode === 'time') {
     const t = me && me.time != null ? me.time : null;
     let isRecord = false;
     if (t != null) isRecord = progress.setBestTime(sel.track.id, t);
     // small participation XP/coins so it still feels rewarding
-    progress.addCoins(40);
+    progress.addCoins(40 + collected);
     const lvl = progress.addXp(30);
     showTimeTrialResults(t, isRecord, lvl);
     return;
   }
 
-  // Coin + XP rewards for this race
-  const reward = raceCoinReward(place);
+  // Coin + XP rewards for this race (placement reward + coins picked up)
+  const reward = raceCoinReward(place) + collected;
   progress.addCoins(reward);
   const xpGain = raceXpReward(place);
   const levelInfo = progress.addXp(xpGain); // { levelsGained, level, coinBonus }

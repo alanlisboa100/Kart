@@ -164,6 +164,14 @@ export class Game {
     this.items.onBoxGrab = (pos) => {
       if (this.fx) this.fx.burst(pos, 0x66e0ff, 12, 9);
     };
+    // Coin pickup: golden sparkle + sound + live HUD counter
+    this.items.onCoin = (kart, pos) => {
+      if (kart === this.player) {
+        if (this.fx) this.fx.burst(pos, 0xffd23f, 7, 7);
+        if (this.audio) this.audio.play('coin');
+        if (this.hud.setCoins) this.hud.setCoins(this.player.coins);
+      }
+    };
 
     // Particle FX
     this.fx = new FXSystem(this.scene);
@@ -219,6 +227,7 @@ export class Game {
     this._lastPlace = null;    // for trash-talk on position changes
     this._tauntCd = 0;
     if (this.hud.setItem) this.hud.setItem(null);
+    if (this.hud.setCoins) this.hud.setCoins(0);
     if (this.audio) { this.audio.startEngine(); this.audio.startMusic(); }
     this.clock.getDelta();
     if (!this._running) { this._running = true; this._loop(); }

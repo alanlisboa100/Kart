@@ -13,7 +13,36 @@ export class ItemSystem {
 
     this.boxes = [];
     this.projectiles = [];
+    this.coins = [];
     this._buildBoxes();
+    this._buildCoins();
+  }
+
+  // Collectible gold coins scattered along the racing line. Picking one up
+  // gives a tiny speed nudge and feeds the coin economy (via onCoin).
+  _buildCoins() {
+    const coinGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.12, 16);
+    // place a coin roughly every ~25 samples, skipping near item boxes
+    const step = 25;
+    for (let idx = 12; idx < this.track.N; idx += step) {
+      // a short arc of 3 coins for a nice "collect the line" feel
+      for (let j = 0; j < 3; j++) {
+        const si = (idx + j * 3) % this.track.N;
+        const c = this.track.samples[si];
+        const n = this.track.normals[si];
+        const lateral = (Math.sin(idx * 0.7) * 0.5) * this.track.halfWidth * 0.5; // gentle weave
+        const mat = new THREE.MeshStandardMaterial({
+          color: 0xffd23f, emissive: 0xb8860b, emissiveIntensity: 0.5,
+          metalness: 0.7, roughness: 0.25,
+        });
+        const mesh = new THREE.Mesh(coinGeo, mat);
+        mesh.rotation.x = Math.PI / 2; // face up like a spinning coin
+        const pos = new THREE.Vector3(c.x + n.x * lateral, 0.9, c.z + n.z * lateral);
+        mesh.position.copy(pos);
+        this.group.add(mesh);
+        this.coins.push({ mesh, pos, active: true, respawn: 0, spin: Math.random() * Math.PI * 2 });
+      }
+    }
   }
 
   _buildBoxes() {
@@ -126,6 +155,29 @@ export class ItemSystem {
           box.popIn = 0.4; // pop-in grow animation
           box.mesh.scale.setScalar(0.01);
         }
+      }
+    }
+
+    // Coins: spin, bob, and get collected by any kart that touches them.
+    for (const coin of this.coins) {
+      if (coin.active) {
+        coin.spin += dt;
+        coin.mesh.rotation.z = coin.spin * 3;
+        coin.mesh.position.y = coin.pos.y + Math.sin(coin.spin * 3) * 0.15;
+        for (const k of karts) {
+          if (k.finished) continue;
+          if (dist2(k.pos, coin.pos) < 6.25) { // 2.5u radius
+            coin.active = false;
+            coin.respawn = 6;
+            coin.mesh.visible = false;
+            if (k.collectCoin) k.collectCoin();
+            if (this.onCoin) this.onCoin(k, coin.pos);
+            break;
+          }
+        }
+      } else {
+        coin.respawn -= dt;
+        if (coin.respawn <= 0) { coin.active = true; coin.mesh.visible = true; }
       }
     }
 
@@ -299,6 +351,7 @@ export class ItemSystem {
     });
     this.boxes = [];
     this.projectiles = [];
+    this.coins = [];
   }
 }
 

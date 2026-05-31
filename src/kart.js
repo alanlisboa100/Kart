@@ -80,6 +80,16 @@ export class Kart {
     // Rubber-banding multiplier on top speed (1 = normal). Game sets this for
     // AI karts each frame so trailing rivals can catch up and leaders ease off.
     this.rubber = 1;
+
+    // Coins collected this race (classic kart speed-stacking mechanic).
+    this.coins = 0;
+  }
+
+  // Collect a track coin: tiny instant nudge + a small lasting top-speed bonus
+  // that stacks up to 10 coins (then resets each race).
+  collectCoin() {
+    this.coins = Math.min(10, this.coins + 1);
+    this.speed += 1.5; // small instant pop
   }
 
   placeAt(pos, heading) {
@@ -101,6 +111,7 @@ export class Kart {
     this.shrink = 0;
     this.shield = 0;
     this.steerSmooth = 0;
+    this.coins = 0;
     this.mesh.scale.setScalar(1);
     this._updateShieldVisual();
     this._applyTransform();
@@ -128,7 +139,9 @@ export class Kart {
     // --- Status: lightning shrink slows the kart ---
     const shrunk = this.shrink > 0;
     if (shrunk) this.shrink -= dt;
-    const baseMax = this.maxSpeed * (shrunk ? 0.55 : 1) * (this.rubber || 1);
+    // Coins give a small top-speed bonus (up to +5% at 10 coins).
+    const coinBonus = 1 + (this.coins || 0) * 0.005;
+    const baseMax = this.maxSpeed * (shrunk ? 0.55 : 1) * (this.rubber || 1) * coinBonus;
 
     // --- Status: shield timer + spinning bubble visual ---
     if (this.shield > 0) {
