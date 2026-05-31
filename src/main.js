@@ -2,7 +2,7 @@
 import { Game } from './game.js';
 import { Input } from './input.js';
 import { AudioManager } from './audio.js';
-import { Progress, raceCoinReward, trophyForPlace } from './progress.js';
+import { Progress, raceCoinReward, trophyForPlace, raceXpReward } from './progress.js';
 import {
   CHARACTERS, KARTS, TRACKS, CUPS, GP_POINTS,
   getCharacter, getKart, getCup, getCupTracks,
@@ -12,7 +12,7 @@ window.__kartopiaBooted = true;
 
 const $ = (sel) => document.querySelector(sel);
 const hex = (n) => '#' + n.toString(16).padStart(6, '0');
-const ITEM_EMOJI = { banana: '🍌', shell: '🐢', boost: '🍄', lightning: '⚡' };
+const ITEM_EMOJI = { banana: '🍌', shell: '🐢', boost: '🍄', lightning: '⚡', bomb: '💣', oil: '🛢️' };
 
 const canvas = $('#game');
 const input = new Input();
@@ -42,6 +42,12 @@ const hud = {
     num.textContent = n <= 0 ? 'JÁ!' : n;
     num.style.animation = 'none'; void num.offsetWidth; num.style.animation = '';
   },
+  flashMsg: (text) => {
+    const el = $('#flash-msg');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  },
   onFinish: (standings) => onRaceFinish(standings),
 };
 
@@ -67,6 +73,8 @@ function setRaceUI(on) {
 }
 function updateCoinBadges() {
   document.querySelectorAll('.coin-badge span').forEach((s) => (s.textContent = progress.coins));
+  const lb = $('#level-badge-title');
+  if (lb) lb.querySelector('span').textContent = progress.level;
 }
 
 // ===========================================================================
@@ -275,16 +283,21 @@ function startCup(cupId) {
 // ===========================================================================
 function startQuickRace() {
   session = { mode: 'quick' };
-  startRace(sel.track, null);
+  startRace(sel.track, null, 5);
+}
+
+function startTimeTrial() {
+  session = { mode: 'time' };
+  startRace(sel.track, null, 0); // solo: no rivals
 }
 
 function startSessionRace() {
   const track = getCupTracks(session.cup.id)[session.raceIndex];
   sel.track = track;
-  startRace(track, session.roster);
+  startRace(track, session.roster, 5);
 }
 
-function startRace(trackDef, roster) {
+function startRace(trackDef, roster, opponents) {
   audio.init();
   show(null);
   setRaceUI(true);
@@ -294,7 +307,7 @@ function startRace(trackDef, roster) {
     trackDef,
     playerChar: sel.char,
     playerKart: sel.kart,
-    opponents: 5,
+    opponents: opponents != null ? opponents : 5,
     input,
     roster,
   });
@@ -307,9 +320,23 @@ function onRaceFinish(standings) {
   const me = standings.find((s) => s.isPlayer);
   const place = me ? me.place : 6;
 
-  // Coin reward for this race
+  // Time Trial: show the lap time + best-time record, no coin/place rewards.
+  if (session && session.mode === 'time') {
+    const t = me && me.time != null ? me.time : null;
+    let isRecord = false;
+    if (t != null) isRecord = progress.setBestTime(sel.track.id, t);
+    // small participation XP/coins so it still feels rewarding
+    progress.addCoins(40);
+    const lvl = progress.addXp(30);
+    showTimeTrialResults(t, isRecord, lvl);
+    return;
+  }
+
+  // Coin + XP rewards for this race
   const reward = raceCoinReward(place);
   progress.addCoins(reward);
+  const xpGain = raceXpReward(place);
+  const levelInfo = progress.addXp(xpGain); // { levelsGained, level, coinBonus }
 
   if (session && session.mode === 'gp') {
     // Award championship points to everyone, then show standings.
@@ -318,16 +345,44 @@ function onRaceFinish(standings) {
       const key = s.isPlayer ? 'player' : s.rivalId;
       if (key && session.points[key] != null) session.points[key] += pts;
     });
-    showRaceResults(standings, reward, true);
+    showRaceResults(standings, reward, true, xpGain, levelInfo);
   } else {
-    showRaceResults(standings, reward, false);
+    showRaceResults(standings, reward, false, xpGain, levelInfo);
   }
 }
 
-function showRaceResults(standings, reward, isGp) {
+function showTimeTrialResults(time, isRecord, levelInfo) {
+  $('#results-title').textContent = isRecord ? '⏱️ Novo Recorde!' : '⏱️ Contra o Tempo';
+  const best = progress.bestTime(sel.track.id);
+  let html = time != null ? `Seu tempo: <b>${fmtTime(time)}</b>` : 'Corrida não concluída';
+  if (best != null) html += `<br>Melhor tempo: <b>${fmtTime(best)}</b>`;
+  if (levelInfo && levelInfo.levelsGained > 0) {
+    html += `<br><span class="levelup">⬆️ Nível ${levelInfo.level}! +🪙 ${levelInfo.coinBonus}</span>`;
+  }
+  $('#reward-line').innerHTML = html;
+  $('#xp-bar-wrap').innerHTML = '';
+  $('#results-list').innerHTML = '';
+  const actions = $('#results-actions');
+  actions.innerHTML = '';
+  actions.appendChild(mkBtn('btn-ghost', 'Menu', () => { game.cleanup(); show('screen-title'); }));
+  actions.appendChild(mkBtn('btn-primary', 'Tentar de novo', () => startTimeTrial()));
+  show('screen-results');
+}
+
+function showRaceResults(standings, reward, isGp, xpGain, levelInfo) {
   const me = standings.find((s) => s.isPlayer);
   $('#results-title').textContent = me ? podiumText(me.place) : 'Resultado';
-  $('#reward-line').innerHTML = `Você ganhou <b>🪙 ${reward}</b>!`;
+  let rewardHtml = `Você ganhou <b>🪙 ${reward}</b> e <b>✨ ${xpGain} XP</b>!`;
+  if (levelInfo && levelInfo.levelsGained > 0) {
+    rewardHtml += `<br><span class="levelup">⬆️ Subiu para o nível ${levelInfo.level}! +🪙 ${levelInfo.coinBonus}</span>`;
+  }
+  $('#reward-line').innerHTML = rewardHtml;
+  // XP progress bar toward next level
+  const lp = progress.levelProgress();
+  const pct = Math.max(0, Math.min(100, (lp.into / lp.need) * 100));
+  $('#xp-bar-wrap').innerHTML =
+    `<div class="xp-row"><span>Nível ${lp.level}</span><span>${lp.into}/${lp.need} XP</span></div>
+     <div class="xp-bar"><div class="xp-fill" style="width:${pct}%"></div></div>`;
   const ol = $('#results-list');
   ol.innerHTML = '';
   standings.forEach((s) => {
@@ -433,6 +488,12 @@ function openSelect(mode) {
     buildTrackList();
     $('#btn-race').textContent = 'CORRER!';
     $('#btn-race').onclick = () => startQuickRace();
+  } else if (mode === 'time') {
+    $('#select-title').textContent = 'Contra o Tempo — escolha a pista';
+    $('#track-section').style.display = '';
+    buildTrackList();
+    $('#btn-race').textContent = '⏱️ LARGAR!';
+    $('#btn-race').onclick = () => startTimeTrial();
   } else {
     // GP: pick driver/kart, track chosen by cup
     $('#select-title').textContent = 'Campeonato — escolha piloto e kart';
@@ -445,6 +506,7 @@ function openSelect(mode) {
 
 $('#btn-quick').onclick = () => { audio.init(); openSelect('quick'); };
 $('#btn-cups').onclick = () => { audio.init(); openSelect('gp'); };
+$('#btn-time').onclick = () => { audio.init(); openSelect('time'); };
 $('#btn-shop').onclick = () => { audio.init(); buildShop(); show('screen-shop'); };
 $('#btn-back').onclick = () => show('screen-title');
 $('#btn-cups-back').onclick = () => show('screen-select');

@@ -33,6 +33,14 @@ export class Input {
   queueUse() { this._useQueued = true; }
   pollUse() { const v = this._useQueued; this._useQueued = false; return v; }
 
+  // Explicit "launch" intent for the perfect-start minigame. This is a REAL
+  // player press (DRIFT button / Space / Up), NOT the automatic throttle - so
+  // it never triggers on its own during the countdown.
+  launchHeld() {
+    const k = this.keys;
+    return !!(this.btn.drift || this.btn.gas || k[' '] || k['arrowup'] || k['w']);
+  }
+
   // zone: a full-height element covering the LEFT half of the screen (capture area)
   // base: the visual joystick ring (absolutely positioned, moved to thumb)
   // knob: the moving thumb dot inside base

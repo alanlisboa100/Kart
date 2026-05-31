@@ -51,6 +51,11 @@
             <span class="mb-text"><b>Campeonato</b><small>Dispute as copas</small></span>
             <span class="mb-arrow">▶</span>
           </button>
+          <button class="menu-btn mb-time" id="btn-time">
+            <span class="mb-icon">⏱️</span>
+            <span class="mb-text"><b>Contra o Tempo</b><small>Bata seu recorde, sozinho</small></span>
+            <span class="mb-arrow">▶</span>
+          </button>
           <button class="menu-btn mb-shop" id="btn-shop">
             <span class="mb-icon">🛒</span>
             <span class="mb-text"><b>Loja</b><small>Pilotos, karts e mais</small></span>
@@ -60,6 +65,7 @@
         <p class="hint">8 pilotos • 6 karts • 10 pistas • itens 🍌⚡</p>
       </div>
       <div class="coin-badge" id="coin-badge-title">🪙 <span>0</span></div>
+      <div class="level-badge" id="level-badge-title">Nv <span>1</span></div>
     </section>
 
     <!-- Selection -->
@@ -122,6 +128,7 @@
       <div class="results-inner">
         <h2 id="results-title">Resultado</h2>
         <p class="reward-line" id="reward-line"></p>
+        <div id="xp-bar-wrap" class="xp-bar-wrap"></div>
         <ol id="results-list" class="results-list"></ol>
         <div class="select-actions" id="results-actions"></div>
       </div>
@@ -145,6 +152,7 @@
         <div class="hud-pill"><span class="hud-label">TEMPO</span><span id="hud-time">0:00</span></div>
       </div>
       <div class="hud-item" id="hud-item"></div>
+      <canvas id="minimap" class="minimap" width="150" height="150"></canvas>
       <div class="hud-speed">
         <span id="hud-speed">0</span><small>km/h</small>
         <div class="drift-meter" id="drift-meter">
@@ -158,6 +166,9 @@
 
     <!-- Countdown -->
     <div id="countdown" class="hidden"><span id="countdown-num">3</span></div>
+
+    <!-- Transient race message (perfect start, etc.) -->
+    <div id="flash-msg" class="flash-msg"></div>
 
     <!-- Touch controls -->
     <div id="touch" class="hidden">

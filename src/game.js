@@ -146,12 +146,18 @@ export class Game {
     this.track = new Track(trackDef);
     this.scene.add(this.track.group);
     this.totalLaps = this.track.laps;
+    this._initMinimap();
 
     // Item boxes + projectiles
     this.items = new ItemSystem(this.scene, this.track);
     this.items.onHit = (kart, type) => {
       if (this.audio && kart === this.player) this.audio.play('hit');
       if (this.fx) this.fx.burst(kart.pos, 0xff4444, 12, 10);
+    };
+    // Bomb explosion: big fiery burst + sound
+    this.items.onExplode = (pos) => {
+      if (this.fx) { this.fx.burst(pos, 0xff7a1a, 22, 16); this.fx.burst(pos, 0xffe14d, 14, 12); }
+      if (this.audio) this.audio.play('hit');
     };
 
     // Particle FX
@@ -204,6 +210,7 @@ export class Game {
     this._lastCount = null;
     this.raceTime = 0;
     this._wasBoosting = false;
+    this._launchResult = null; // perfect-start state (set during countdown)
     if (this.hud.setItem) this.hud.setItem(null);
     if (this.audio) { this.audio.startEngine(); this.audio.startMusic(); }
     this.clock.getDelta();
@@ -230,6 +237,15 @@ export class Game {
         this.hud.setCountdown(0); // shows "JÁ!"
         if (this.audio) this.audio.play('go');
         setTimeout(() => this.hud.setCountdown(null), 650);
+        this._resolvePerfectStart();
+      }
+      // --- Perfect start: detect the player's launch input timing ---
+      if (this._launchResult == null && this.input && this.input.launchHeld) {
+        if (this.input.launchHeld()) {
+          // perfect window is the last ~0.45s of the countdown
+          if (this.countdown <= 0.45 && this.countdown > -0.05) this._launchResult = 'perfect';
+          else if (this.countdown > 0.45) this._launchResult = 'early'; // jumped the gun
+        }
       }
       // hold karts still during countdown
       for (const k of this.karts) k.update(0, { throttle: 0, brake: 0, steer: 0, drift: false }, this.track);
@@ -261,6 +277,7 @@ export class Game {
       this._updateItems(dt);
       this._separateKarts();
       if (this.track) this.track.update(dt, this.raceTime);
+      this._emitDriftSmoke(dt);
       if (this.fx) this.fx.update(dt);
       this._followCamera(dt, false);
       this._updateHud();
@@ -291,6 +308,69 @@ export class Game {
     this.hud.setSpeed(Math.round(Math.abs(p.speed) * 3.6));
     this.hud.setDrift(p.drifting ? p.driftTier : 0);
     this.hud.setTime(this.raceTime);
+    this._drawMinimap();
+  }
+
+  // Set up the minimap canvas + a world->map transform for the current track.
+  _initMinimap() {
+    this._mmCanvas = (typeof document !== 'undefined') ? document.getElementById('minimap') : null;
+    this._mmCtx = this._mmCanvas ? this._mmCanvas.getContext('2d') : null;
+    if (!this._mmCtx || !this.track) return;
+    // bounds of the track centerline
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (const s of this.track.samples) {
+      if (s.x < minX) minX = s.x; if (s.x > maxX) maxX = s.x;
+      if (s.z < minZ) minZ = s.z; if (s.z > maxZ) maxZ = s.z;
+    }
+    const w = maxX - minX || 1, h = maxZ - minZ || 1;
+    const pad = 14;
+    const size = this._mmCanvas.width;
+    const sc = (size - pad * 2) / Math.max(w, h);
+    this._mm = {
+      sc,
+      ox: (size - w * sc) / 2 - minX * sc,
+      oy: (size - h * sc) / 2 - minZ * sc,
+      size,
+    };
+  }
+
+  _drawMinimap() {
+    const ctx = this._mmCtx, mm = this._mm;
+    if (!ctx || !mm || !this.track) return;
+    const toX = (x) => x * mm.sc + mm.ox;
+    const toY = (z) => z * mm.sc + mm.oy;
+    ctx.clearRect(0, 0, mm.size, mm.size);
+
+    // track ribbon
+    ctx.beginPath();
+    const s0 = this.track.samples[0];
+    ctx.moveTo(toX(s0.x), toY(s0.z));
+    for (let i = 1; i < this.track.samples.length; i += 3) {
+      const s = this.track.samples[i];
+      ctx.lineTo(toX(s.x), toY(s.z));
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 5; ctx.lineJoin = 'round';
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(60,60,80,0.9)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // karts: rivals as small dots, player highlighted
+    for (const k of this.karts) {
+      if (k === this.player) continue;
+      ctx.fillStyle = '#9bb8ff';
+      ctx.beginPath();
+      ctx.arc(toX(k.pos.x), toY(k.pos.z), 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    const p = this.player;
+    ctx.fillStyle = '#ff2e97';
+    ctx.beginPath();
+    ctx.arc(toX(p.pos.x), toY(p.pos.z), 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
   }
 
   _updateItems(dt) {
@@ -352,6 +432,14 @@ export class Game {
         this.items.fireShell(kart);
         if (this.audio && kart === this.player) this.audio.play('shell');
         break;
+      case 'bomb':
+        this.items.dropBomb(kart);
+        if (this.audio && kart === this.player) this.audio.play('use');
+        break;
+      case 'oil':
+        this.items.dropOil(kart);
+        if (this.audio && kart === this.player) this.audio.play('use');
+        break;
       case 'lightning':
         for (const other of this.karts) {
           if (other !== kart && !other.finished) other.applyShrink(3);
@@ -392,6 +480,49 @@ export class Game {
     this.audio.setEngine(speed01, boosting);
     if (boosting && !this._wasBoosting) this.audio.play('boost');
     this._wasBoosting = boosting;
+  }
+
+  // Emit drift smoke / boost dust from each kart's rear wheels. Throttled by a
+  // timer so we spawn a steady stream without flooding the particle pool.
+  // Resolve the launch-timing minigame the instant the lights go green.
+  _resolvePerfectStart() {
+    const p = this.player;
+    if (!p) return;
+    if (this._launchResult === 'perfect') {
+      p.applyItemBoost(1.6);
+      if (this.fx) this.fx.burst(p.pos, 0x00f5d4, 16, 12);
+      if (this.audio) this.audio.play('boost');
+      if (this.hud.flashMsg) this.hud.flashMsg('LARGADA PERFEITA! 🚀');
+    } else if (this._launchResult === 'early') {
+      // jumped the gun: lose all launch momentum (bog down off the line)
+      p.speed = 0;
+      if (this.hud.flashMsg) this.hud.flashMsg('Adiantou! 😬');
+    }
+  }
+
+  _emitDriftSmoke(dt) {
+    if (!this.fx) return;
+    this._smokeTimer = (this._smokeTimer || 0) - dt;
+    if (this._smokeTimer > 0) return;
+    this._smokeTimer = 0.04; // ~25 puffs/sec budget shared across karts
+    for (const k of this.karts) {
+      const drifting = k.drifting && Math.abs(k.speed) > 4;
+      const boosting = k.boostTimer > 0 && Math.abs(k.speed) > 6;
+      if (!drifting && !boosting) continue;
+      const fwd = k.forward();
+      // rear of the kart, slightly behind
+      const bx = k.pos.x - fwd.x * 1.4;
+      const bz = k.pos.z - fwd.z * 1.4;
+      // perpendicular for left/right wheels
+      const px = -fwd.z, pz = fwd.x;
+      const tier = k.driftTier;
+      // drift smoke tints with the mini-turbo tier; boost dust is warm
+      const color = boosting ? 0x9fe8ff
+        : tier >= 3 ? 0xd9b3ff : tier >= 2 ? 0xffd9a8 : 0xe6e6e6;
+      for (const side of [-1, 1]) {
+        this.fx.puff(bx + px * 0.85 * side, 0.35, bz + pz * 0.85 * side, color, drifting ? 0.5 : 0.35);
+      }
+    }
   }
 
   _finishRace() {
@@ -506,8 +637,9 @@ function pickDifferent(list, used) {
 function rollItem(place, total) {
   const frac = total > 1 ? (place - 1) / (total - 1) : 0;
   let pool;
-  if (frac < 0.25) pool = ['banana', 'banana', 'shell', 'boost'];
-  else if (frac < 0.6) pool = ['shell', 'banana', 'boost', 'boost'];
+  // Leaders get defensive drops (banana/oil/bomb); trailers get speed/lightning.
+  if (frac < 0.25) pool = ['banana', 'oil', 'bomb', 'shell', 'boost'];
+  else if (frac < 0.6) pool = ['shell', 'banana', 'oil', 'bomb', 'boost', 'boost'];
   else pool = ['boost', 'boost', 'shell', 'banana', 'lightning'];
   return pool[Math.floor(Math.random() * pool.length)];
 }

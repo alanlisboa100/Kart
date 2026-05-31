@@ -42,6 +42,9 @@ export class FXSystem {
       m.userData.vz = Math.sin(ang) * out;
       m.userData.life = 0.5 + Math.random() * 0.4;
       m.userData.maxLife = m.userData.life;
+      m.userData.grow = 0;       // bursts don't swell
+      m.userData.gravity = -22;  // bursts fall fast
+      m.userData.baseOpacity = 1;
       const s = 0.5 + Math.random() * 0.8;
       m.scale.setScalar(s);
     }
@@ -50,6 +53,27 @@ export class FXSystem {
   // A quick ring/flash for emphasis (uses a few big fading particles)
   flash(pos, color = 0xffffff) {
     this.burst(pos, color, 6, 6);
+  }
+
+  // A soft puff (smoke/dust): rises slowly, expands and fades. Used for drift
+  // smoke and boost-pad dust. `grow` makes the particle swell over its life.
+  puff(x, y, z, color = 0xdddddd, opacity = 0.5) {
+    const m = this._take();
+    if (!m) return;
+    m.material.color.setHex(color);
+    m.material.opacity = opacity;
+    m.position.set(x, y, z);
+    const ang = Math.random() * Math.PI * 2;
+    const out = 0.5 + Math.random() * 1.5;
+    m.userData.vx = Math.cos(ang) * out;
+    m.userData.vy = 1.2 + Math.random() * 1.8; // drift upward
+    m.userData.vz = Math.sin(ang) * out;
+    m.userData.life = 0.5 + Math.random() * 0.5;
+    m.userData.maxLife = m.userData.life;
+    m.userData.grow = 2.0 + Math.random() * 2.0; // swell rate
+    m.userData.gravity = -2; // gentle, floaty (not the 22 of bursts)
+    m.userData.baseOpacity = opacity;
+    m.scale.setScalar(0.4 + Math.random() * 0.4);
   }
 
   update(dt) {
@@ -63,12 +87,15 @@ export class FXSystem {
         this.pool.push(m);
         continue;
       }
-      u.vy -= 22 * dt; // gravity
+      u.vy += (u.gravity != null ? u.gravity : -22) * dt;
       m.position.x += u.vx * dt;
       m.position.y += u.vy * dt;
       m.position.z += u.vz * dt;
-      if (m.position.y < 0.1) { m.position.y = 0.1; u.vy *= -0.4; u.vx *= 0.7; u.vz *= 0.7; }
-      m.material.opacity = Math.max(0, u.life / u.maxLife);
+      if (u.grow) m.scale.multiplyScalar(1 + u.grow * dt);
+      if (m.position.y < 0.1 && (u.gravity == null || u.gravity <= -10)) {
+        m.position.y = 0.1; u.vy *= -0.4; u.vx *= 0.7; u.vz *= 0.7;
+      }
+      m.material.opacity = Math.max(0, (u.life / u.maxLife)) * (u.baseOpacity || 1);
     }
   }
 

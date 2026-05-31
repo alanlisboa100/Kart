@@ -79,17 +79,41 @@ export class ItemSystem {
       } else if (p.type === 'banana' && !remove) {
         p.arm -= dt;
         p.mesh.rotation.y += dt * 1.5;
+      } else if (p.type === 'oil' && !remove) {
+        // oil slick just sits there, shimmering
+        p.mesh.rotation.z += dt * 0.5;
+      } else if (p.type === 'bomb' && !remove) {
+        p.fuse -= dt;
+        // pulse faster as the fuse runs down
+        const pulse = 1 + Math.sin(this.bombTime = (this.bombTime || 0) + dt * (8 + (3 - p.fuse) * 6)) * 0.15;
+        p.mesh.scale.setScalar(pulse);
+        if (p.fuse <= 0) {
+          // explode: area damage to any kart nearby, then remove
+          for (const k of karts) {
+            if (k.finished) continue;
+            if (dist2(k.pos, p.pos) < 64) { // 8u radius
+              k.spinOut(1.5);
+              if (this.onHit) this.onHit(k, 'bomb');
+            }
+          }
+          if (this.onExplode) this.onExplode(p.pos);
+          remove = true;
+        }
       }
 
-      if (!remove) {
+      if (!remove && (p.type === 'banana' || p.type === 'shell' || p.type === 'oil')) {
         for (const k of karts) {
           if (k.finished) continue;
           if (p.type === 'banana' && k === p.owner && p.arm > 0) continue;
           if (p.type === 'shell' && k === p.owner) continue;
-          if (dist2(k.pos, p.pos) < (p.type === 'shell' ? 5.0 : 4.0)) {
-            k.spinOut(p.type === 'shell' ? 1.3 : 1.2);
+          if (p.type === 'oil' && k === p.owner && p.arm > 0) continue;
+          const hitR = p.type === 'shell' ? 5.0 : p.type === 'oil' ? 6.0 : 4.0;
+          if (dist2(k.pos, p.pos) < hitR) {
+            k.spinOut(p.type === 'shell' ? 1.3 : p.type === 'oil' ? 1.0 : 1.2);
             if (this.onHit) this.onHit(k, p.type);
-            remove = true;
+            // oil is a slick: stays on the track and can catch several karts,
+            // so it is NOT removed on hit (it expires by its own life timer).
+            if (p.type !== 'oil') remove = true;
             break;
           }
         }
@@ -124,6 +148,41 @@ export class ItemSystem {
       type: 'shell', pos, mesh, owner: kart, life: 3.0, seg: kart.segIndex,
       vel: { x: fwd.x * SHELL_SPEED, z: fwd.z * SHELL_SPEED },
     });
+  }
+
+  // Bomb: dropped behind, ticks down, then explodes with an area blast.
+  dropBomb(kart) {
+    const fwd = kart.forward();
+    const pos = new THREE.Vector3(kart.pos.x - fwd.x * 2.6, 0.7, kart.pos.z - fwd.z * 2.6);
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(
+      new THREE.SphereGeometry(0.55, 14, 12),
+      new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.4, metalness: 0.4, emissive: 0x550000, emissiveIntensity: 0.4 })
+    );
+    g.add(body);
+    const fuse = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.06, 0.4, 6),
+      new THREE.MeshStandardMaterial({ color: 0xffaa33, emissive: 0xff6600, emissiveIntensity: 0.8 })
+    );
+    fuse.position.y = 0.55;
+    g.add(fuse);
+    g.position.copy(pos);
+    this.group.add(g);
+    this.projectiles.push({ type: 'bomb', pos, mesh: g, owner: kart, life: 6, fuse: 2.2 });
+  }
+
+  // Oil slick: a flat puddle dropped behind that makes karts spin out.
+  dropOil(kart) {
+    const fwd = kart.forward();
+    const pos = new THREE.Vector3(kart.pos.x - fwd.x * 2.6, 0.06, kart.pos.z - fwd.z * 2.6);
+    const mesh = new THREE.Mesh(
+      new THREE.CircleGeometry(2.2, 20),
+      new THREE.MeshStandardMaterial({ color: 0x101015, roughness: 0.15, metalness: 0.6, transparent: true, opacity: 0.85 })
+    );
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.copy(pos);
+    this.group.add(mesh);
+    this.projectiles.push({ type: 'oil', pos, mesh, owner: kart, life: 16, arm: 0.6 });
   }
 
   _removeMesh(mesh) {
