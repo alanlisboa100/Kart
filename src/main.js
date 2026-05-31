@@ -123,21 +123,63 @@ function buildTrackList() {
   const list = $('#track-list');
   list.innerHTML = '';
   TRACKS.forEach((t) => {
-    const row = document.createElement('div');
-    row.className = 'track-row' + (t.id === sel.track.id ? ' selected' : '');
-    row.innerHTML = `
-      <div class="track-color" style="background:${hex(t.theme.ground)}"></div>
-      <div class="track-meta">
+    const card = document.createElement('div');
+    card.className = 'track-card' + (t.id === sel.track.id ? ' selected' : '');
+    const sky = hex(t.theme.sky);
+    const ground = hex(t.theme.ground);
+    const road = hex(t.theme.road);
+    const curb = hex(t.theme.curb);
+    // Mini SVG preview: themed sky/ground panel + a stylized loop drawn from
+    // the same harmonic params used to build the real track.
+    const preview = trackPreviewSVG(t, road, curb);
+    card.innerHTML = `
+      <div class="track-preview" style="background:linear-gradient(160deg, ${sky}, ${ground})">
+        ${preview}
+        <span class="track-badge">${'★'.repeat(t.difficulty)}</span>
+      </div>
+      <div class="track-info">
         <div class="tname">${t.name}</div>
-        <div class="tdiff">${'★'.repeat(t.difficulty)}${'☆'.repeat(5 - t.difficulty)} • ${t.laps} voltas</div>
-      </div>`;
-    row.onclick = () => {
+        <div class="tmeta">${t.laps} voltas • ${t.width >= 17 ? 'Largo' : 'Técnico'}</div>
+      </div>
+      <div class="track-check">✓</div>`;
+    card.onclick = () => {
       sel.track = t;
-      list.querySelectorAll('.track-row').forEach((r) => r.classList.remove('selected'));
-      row.classList.add('selected');
+      list.querySelectorAll('.track-card').forEach((r) => r.classList.remove('selected'));
+      card.classList.add('selected');
+      audio.play('drift');
     };
-    list.appendChild(row);
+    list.appendChild(card);
   });
+}
+
+// Build a small SVG of the track loop shape from its harmonic definition.
+function trackPreviewSVG(t, road, curb) {
+  const L = t.loop;
+  const pts = [];
+  const N = 80;
+  const harmonics = L.harmonics || [];
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2 + (L.rotate || 0);
+    let r = L.radius;
+    for (const h of harmonics) r += h.amp * Math.sin(h.k * a + (h.phase || 0));
+    const x = Math.cos(a) * r * (L.squashX || 1);
+    const z = Math.sin(a) * r * (L.squashZ || 1);
+    pts.push([x, z]);
+  }
+  // normalize to a 0..100 viewbox with padding
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  for (const [x, z] of pts) { minX = Math.min(minX, x); maxX = Math.max(maxX, x); minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z); }
+  const w = maxX - minX || 1, h = maxZ - minZ || 1;
+  const pad = 14;
+  const sc = (100 - pad * 2) / Math.max(w, h);
+  const ox = (100 - w * sc) / 2 - minX * sc;
+  const oy = (100 - h * sc) / 2 - minZ * sc;
+  const d = pts.map(([x, z], i) => `${i === 0 ? 'M' : 'L'}${(x * sc + ox).toFixed(1)},${(z * sc + oy).toFixed(1)}`).join(' ') + ' Z';
+  return `<svg class="track-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+    <path d="${d}" fill="none" stroke="${curb}" stroke-width="9" stroke-linejoin="round" opacity="0.55"/>
+    <path d="${d}" fill="none" stroke="${road}" stroke-width="5.5" stroke-linejoin="round"/>
+    <path d="${d}" fill="none" stroke="#ffffff" stroke-width="0.8" stroke-dasharray="2 3" stroke-linejoin="round" opacity="0.7"/>
+  </svg>`;
 }
 const fmtMod = (n) => (n > 0 ? '+' + n : n === 0 ? '0' : '' + n);
 function flash(el) { el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 350); }

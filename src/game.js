@@ -415,9 +415,13 @@ export class Game {
   _snapCamera() {
     const p = this.player;
     const fwd = p.forward();
-    this.camPos.copy(p.pos).addScaledVector(fwd, -12).add(new THREE.Vector3(0, 7, 0));
-    this.camera.position.copy(this.camPos);
-    this.camera.lookAt(p.pos.x, p.pos.y + 1.5, p.pos.z);
+    this.camera.up.set(0, 1, 0);
+    this.camera.position.copy(p.pos).addScaledVector(fwd, -13).add(new THREE.Vector3(0, 6.5, 0));
+    this.camTarget.set(p.pos.x + fwd.x * 9, p.pos.y + 1.8, p.pos.z + fwd.z * 9);
+    this.camera.lookAt(this.camTarget);
+    this.fov = this.baseFov;
+    this.camera.fov = this.baseFov;
+    this.camera.updateProjectionMatrix();
   }
 
   _followCamera(dt, slow) {
@@ -425,29 +429,33 @@ export class Game {
     const fwd = p.forward();
     const speedFactor = Math.min(Math.abs(p.speed) / p.maxSpeed, 1);
     const boosting = p.boostTimer > 0;
-    // Pull back & lower a touch with speed for a grounded, fast feel.
-    const dist = 11.5 + speedFactor * 3.0;
-    const height = 6.2 - speedFactor * 0.6;
+
+    // Classic chase cam: directly behind the kart, a bit above, looking ahead.
+    // Stable up vector + plain lookAt => rock-solid horizon (no roll hacks).
+    const dist = 13 + speedFactor * 2.0;
+    const height = 6.5;
     const desired = new THREE.Vector3()
       .copy(p.pos)
       .addScaledVector(fwd, -dist)
       .add(new THREE.Vector3(0, height, 0));
-    const lerp = slow ? 0.04 : 1 - Math.pow(0.0022, dt); // smooth, frame-rate independent
-    this.camera.position.lerp(desired, lerp);
-    this.camTarget.lerp(
-      new THREE.Vector3(p.pos.x + fwd.x * 6, p.pos.y + 1.6, p.pos.z + fwd.z * 6),
-      slow ? 0.05 : 1 - Math.pow(0.0010, dt)
+
+    // Frame-rate-independent smoothing, snappy enough to keep up with the kart.
+    const posK = slow ? 0.08 : 1 - Math.pow(0.0006, dt);
+    this.camera.position.lerp(desired, posK);
+
+    // Aim slightly ahead of and above the kart for good track framing.
+    const lookGoal = new THREE.Vector3(
+      p.pos.x + fwd.x * 9,
+      p.pos.y + 1.8,
+      p.pos.z + fwd.z * 9
     );
+    this.camTarget.lerp(lookGoal, slow ? 0.08 : 1 - Math.pow(0.0006, dt));
+    this.camera.up.set(0, 1, 0);
     this.camera.lookAt(this.camTarget);
 
-    // Subtle camera roll into turns/drift for a dynamic, lively feel.
-    const targetRoll = -(p.lean || 0) * 0.6 - (p.visualYaw || 0) * 0.12;
-    this._camRoll = (this._camRoll || 0) + (targetRoll - (this._camRoll || 0)) * (1 - Math.pow(0.02, dt));
-    this.camera.rotation.z = this._camRoll;
-
-    // Dynamic FOV: widens with speed and pops on boost for a rush feeling.
-    const targetFov = this.baseFov + speedFactor * 7 + (boosting ? 9 : 0);
-    this.fov += (targetFov - this.fov) * (1 - Math.pow(0.02, dt));
+    // Subtle dynamic FOV for a sense of speed (no exaggeration).
+    const targetFov = this.baseFov + speedFactor * 4 + (boosting ? 6 : 0);
+    this.fov += (targetFov - this.fov) * (1 - Math.pow(0.05, dt));
     if (Math.abs(this.fov - this.camera.fov) > 0.05) {
       this.camera.fov = this.fov;
       this.camera.updateProjectionMatrix();

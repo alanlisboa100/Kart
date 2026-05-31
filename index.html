@@ -32,6 +32,7 @@
     <!-- Title -->
     <section id="screen-title" class="screen active">
       <div class="menu-bg" aria-hidden="true">
+        <div class="grid-floor"></div>
         <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span>
         <span class="streak s1"></span><span class="streak s2"></span><span class="streak s3"></span>
       </div>
@@ -40,11 +41,23 @@
         <h1 class="logo">KART<span>OPIA</span></h1>
         <p class="tagline">Derrape, turbine, vença. 🏎️💨</p>
         <div class="menu-buttons">
-          <button class="btn-primary btn-big" id="btn-quick">🏁 Corrida Rápida</button>
-          <button class="btn-primary btn-cup" id="btn-cups">🏆 Campeonato</button>
-          <button class="btn-ghost" id="btn-shop">🛒 Loja</button>
+          <button class="menu-btn mb-quick" id="btn-quick">
+            <span class="mb-icon">🏁</span>
+            <span class="mb-text"><b>Corrida Rápida</b><small>Pegue a pista agora</small></span>
+            <span class="mb-arrow">▶</span>
+          </button>
+          <button class="menu-btn mb-cup" id="btn-cups">
+            <span class="mb-icon">🏆</span>
+            <span class="mb-text"><b>Campeonato</b><small>Dispute as copas</small></span>
+            <span class="mb-arrow">▶</span>
+          </button>
+          <button class="menu-btn mb-shop" id="btn-shop">
+            <span class="mb-icon">🛒</span>
+            <span class="mb-text"><b>Loja</b><small>Pilotos, karts e mais</small></span>
+            <span class="mb-arrow">▶</span>
+          </button>
         </div>
-        <p class="hint">Estilo Wii • 8 pilotos • 6 karts • 10 pistas • itens 🍌⚡</p>
+        <p class="hint">8 pilotos • 6 karts • 10 pistas • itens 🍌⚡</p>
       </div>
       <div class="coin-badge" id="coin-badge-title">🪙 <span>0</span></div>
     </section>
