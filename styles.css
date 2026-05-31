@@ -303,12 +303,12 @@ html, body {
 .hud-item.rolling { animation: itemRoll .12s steps(1) infinite; border-color: var(--yellow); }
 @keyframes itemRoll { 50% { transform: scale(1.12) rotate(8deg); } }
 
-/* ---------- Mini-map ---------- */
+/* ---------- Mini-map (top-left, below the item slot) ---------- */
 .minimap {
   position: absolute;
-  bottom: max(14px, env(safe-area-inset-bottom));
-  left: 50%; transform: translateX(-50%);
-  width: 120px; height: 120px;
+  top: calc(max(12px, env(safe-area-inset-top)) + 84px);
+  left: max(12px, env(safe-area-inset-left));
+  width: 104px; height: 104px;
   background: rgba(10, 8, 24, 0.5);
   border: 2px solid rgba(255, 255, 255, 0.25);
   border-radius: 14px;
@@ -329,6 +329,24 @@ html, body {
   30% { transform: translate(-50%, 0) scale(1); }
   80% { opacity: 1; }
   100% { opacity: 0; transform: translate(-50%, -20px) scale(1); }
+}
+
+/* ---------- Trash-talk taunt bubble ---------- */
+.taunt-bubble {
+  position: fixed; left: 50%; top: 24%; transform: translate(-50%, 0) scale(0.8);
+  background: rgba(255,46,151,0.92); color: #fff;
+  font-weight: 900; font-size: clamp(15px, 4vw, 22px);
+  padding: 10px 20px; border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.4); border: 2px solid #fff;
+  opacity: 0; pointer-events: none; z-index: 29; white-space: nowrap;
+}
+.taunt-bubble.show { animation: tauntPop 2s ease forwards; }
+@keyframes tauntPop {
+  0% { opacity: 0; transform: translate(-50%, 12px) scale(0.6) rotate(-4deg); }
+  12% { opacity: 1; transform: translate(-50%, 0) scale(1.08) rotate(2deg); }
+  25% { transform: translate(-50%, 0) scale(1) rotate(-1deg); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -16px) scale(1); }
 }
 
 /* ---------- Mute button ---------- */
@@ -459,3 +477,33 @@ html, body {
   opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease; z-index: 50;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+
+/* ---------- Player greeting (title) ---------- */
+.player-greet {
+  display: inline-flex; align-items: center; gap: 8px; margin: 0 0 16px;
+  background: rgba(0,0,0,.28); border: 2px solid rgba(255,255,255,.2);
+  padding: 6px 14px; border-radius: 999px; font-weight: 800;
+}
+.player-greet #greet-name { color: var(--cyan); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.edit-name {
+  border: none; background: rgba(255,255,255,.16); color: #fff; cursor: pointer;
+  width: 28px; height: 28px; border-radius: 50%; font-size: 13px;
+}
+.edit-name:active { transform: scale(.92); }
+
+/* ---------- Profile screen ---------- */
+#screen-profile { background: radial-gradient(circle at 50% 30%, #2b2a55 0%, #0c0a1e 70%); }
+.profile-card {
+  text-align: center; width: min(420px, 90vw);
+  background: linear-gradient(160deg, rgba(40,37,86,.95), rgba(21,19,46,.95));
+  border: 3px solid rgba(255,255,255,.18); border-radius: 22px; padding: 28px 24px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.5);
+}
+.profile-emoji { font-size: 56px; margin-bottom: 4px; animation: badgeBob 2.2s ease-in-out infinite; }
+.profile-input {
+  width: 100%; margin: 14px 0 4px; padding: 14px 16px; font-size: 20px; font-weight: 800;
+  text-align: center; border-radius: 14px; border: 2px solid var(--cyan);
+  background: rgba(0,0,0,.35); color: #fff; outline: none;
+}
+.profile-input::placeholder { color: rgba(255,255,255,.4); font-weight: 600; }

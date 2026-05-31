@@ -27,13 +27,14 @@ export class AIController {
     ));
 
     // --- Choose a target speed: slower for sharper bends ---
-    const cornerFactor = clamp(1 - bend * 0.55, 0.42, 1);
-    const targetSpeed = kart.maxSpeed * cornerFactor * (0.86 + 0.14 * this.skill);
+    // Less conservative than before so rivals stay competitive.
+    const cornerFactor = clamp(1 - bend * 0.42, 0.55, 1);
+    const targetSpeed = kart.maxSpeed * cornerFactor * (0.95 + 0.05 * this.skill);
 
     let throttle = 0, brake = 0;
     if (kart.speed < targetSpeed - 0.5) throttle = 1;
-    else if (kart.speed > targetSpeed + 2) brake = clamp((kart.speed - targetSpeed) / 8, 0, 1);
-    else throttle = 0.6;
+    else if (kart.speed > targetSpeed + 3) brake = clamp((kart.speed - targetSpeed) / 10, 0, 1);
+    else throttle = 0.8;
 
     // --- Drift through genuinely sharp turns when fast ---
     const drift = bend > 0.45 && Math.abs(diff) > 0.22 && kart.speed > kart.maxSpeed * 0.5;

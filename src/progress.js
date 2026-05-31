@@ -8,6 +8,7 @@ const defaults = () => ({
   coins: 0,
   xp: 0,
   level: 1,
+  profileName: '',   // player's racer name (empty until they create a profile)
   // first character and first kart are free/owned from the start
   ownedChars: ['pip'],
   ownedKarts: ['beep'],
@@ -44,6 +45,16 @@ export class Progress {
   // --- Coins ---
   get coins() { return this.data.coins; }
   addCoins(n) { this.data.coins = Math.max(0, this.data.coins + Math.round(n)); this.save(); return this.data.coins; }
+
+  // --- Profile (racer name) ---
+  get profileName() { return this.data.profileName || ''; }
+  hasProfile() { return !!(this.data.profileName && this.data.profileName.trim()); }
+  setProfileName(name) {
+    // keep it short & clean
+    this.data.profileName = String(name || '').trim().slice(0, 16);
+    this.save();
+    return this.data.profileName;
+  }
 
   // --- XP / Levels ---
   get xp() { return this.data.xp; }

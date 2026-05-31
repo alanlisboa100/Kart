@@ -48,6 +48,19 @@ const hud = {
     el.textContent = text;
     el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
   },
+  taunt: (kind) => {
+    const lines = {
+      pass: ['Comeu poeira! 😎', 'Tchau, otário! 👋', 'Vai comer no rabo! 🏎️', 'Sai da frente! 💨', 'Lerdo demais! 🐢'],
+      passed: ['Ei, isso é trapaça! 😤', 'Vou te pegar! 😡', 'Volta aqui! 🤬', 'Ah, qual é! 😩'],
+      win: ['SOU O REI DA PISTA! 👑', 'Fácil demais! 🏆', 'Ninguém pra mim! 🔥'],
+      hit: ['Essa doeu! 😵', 'Ai, caramba! 💥', 'Quem jogou isso?! 😠'],
+    };
+    const pool = lines[kind] || lines.pass;
+    const el = $('#taunt');
+    if (!el) return;
+    el.textContent = pool[Math.floor(Math.random() * pool.length)];
+    el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  },
   onFinish: (standings) => onRaceFinish(standings),
 };
 
@@ -516,6 +529,32 @@ $('#btn-mute').onclick = () => {
   $('#btn-mute').textContent = muted ? '🔇' : '🔊';
 };
 
+// ---- Profile (racer name) ----
+function refreshGreeting() {
+  const el = $('#greet-name');
+  if (el) el.textContent = progress.profileName || 'Piloto';
+}
+function openProfile(firstTime) {
+  const input = $('#profile-input');
+  input.value = progress.profileName || '';
+  // on first launch the only way forward is to save a name
+  $('#btn-save-profile').textContent = firstTime ? 'Começar! 🏁' : 'Salvar';
+  show('screen-profile');
+  setTimeout(() => { try { input.focus(); } catch (e) {} }, 50);
+}
+$('#btn-edit-name').onclick = () => { audio.init(); openProfile(false); };
+$('#btn-save-profile').onclick = () => {
+  const name = ($('#profile-input').value || '').trim();
+  if (!name) { $('#profile-input').focus(); return; }
+  progress.setProfileName(name);
+  refreshGreeting();
+  toast(`Bora, ${progress.profileName}! 🏎️`);
+  show('screen-title');
+};
+$('#profile-input') && $('#profile-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') $('#btn-save-profile').click();
+});
+
 // ---- Toast ----
 let toastTimer = null;
 function toast(msg) {
@@ -541,5 +580,10 @@ function fmtTime(sec) {
 
 // kick off
 updateCoinBadges();
-show('screen-title');
+refreshGreeting();
+if (progress.hasProfile()) {
+  show('screen-title');
+} else {
+  openProfile(true); // first launch: ask for a racer name
+}
 game.resize();

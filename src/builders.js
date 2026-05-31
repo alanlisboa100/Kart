@@ -45,6 +45,24 @@ export function buildCharacter(charDef) {
   band.rotation.x = Math.PI / 2;
   g.add(band);
 
+  // Optional ponytail (visual variety) for characters flagged hair:'pony'.
+  if (charDef.hair === 'pony') {
+    const hairCol = charDef.hairColor != null ? charDef.hairColor : 0x4a2c12;
+    const tieMat = mat(hairCol, { rough: 0.6 });
+    const tie = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), tieMat);
+    tie.position.set(0, 1.5, -0.5);
+    g.add(tie);
+    const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.13, 0.5, 6, 10), tieMat);
+    tail.position.set(0, 1.15, -0.6);
+    tail.rotation.x = 0.35;
+    g.add(tail);
+  } else if (charDef.hair === 'bun') {
+    const hairCol = charDef.hairColor != null ? charDef.hairColor : 0x2a1a0c;
+    const bun = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 10), mat(hairCol, { rough: 0.6 }));
+    bun.position.set(0, 1.82, -0.05);
+    g.add(bun);
+  }
+
   // Big friendly eyes (white + iris + shine)
   const eyeWhiteMat = mat(0xffffff, { rough: 0.25 });
   const irisMat = mat(0x2a2a3a, { rough: 0.2 });

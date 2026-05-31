@@ -153,6 +153,7 @@ export class Game {
     this.items.onHit = (kart, type) => {
       if (this.audio && kart === this.player) this.audio.play('hit');
       if (this.fx) this.fx.burst(kart.pos, 0xff4444, 12, 10);
+      if (kart === this.player && this.hud.taunt) this.hud.taunt('hit');
     };
     // Bomb explosion: big fiery burst + sound
     this.items.onExplode = (pos) => {
@@ -177,7 +178,7 @@ export class Game {
         const c = pickDifferent(CHARACTERS, usedChars) || CHARACTERS[(i + 1) % CHARACTERS.length];
         usedChars.add(c.id);
         const k = KARTS[(i + 2) % KARTS.length];
-        grid.push({ char: c, kart: k, isPlayer: false, skill: 0.82 + Math.random() * 0.16 });
+        grid.push({ char: c, kart: k, isPlayer: false, skill: 0.9 + Math.random() * 0.1 });
       }
     }
 
@@ -211,6 +212,8 @@ export class Game {
     this.raceTime = 0;
     this._wasBoosting = false;
     this._launchResult = null; // perfect-start state (set during countdown)
+    this._lastPlace = null;    // for trash-talk on position changes
+    this._tauntCd = 0;
     if (this.hud.setItem) this.hud.setItem(null);
     if (this.audio) { this.audio.startEngine(); this.audio.startMusic(); }
     this.clock.getDelta();
@@ -227,6 +230,7 @@ export class Game {
   };
 
   _update(dt) {
+    this._lastDt = dt;
     if (this.state === 'countdown') {
       this.countdown -= dt;
       if (this.countdown > 0) {
@@ -256,6 +260,8 @@ export class Game {
 
     if (this.state === 'racing' || this.state === 'finished') {
       if (this.state === 'racing') this.raceTime += dt;
+
+      this._applyRubberBanding();
 
       // player input
       const pInput = this.input ? this.input.state : { throttle: 0, brake: 0, steer: 0, drift: false };
@@ -291,6 +297,21 @@ export class Game {
     }
   }
 
+  // Rubber-banding: nudge AI top speed based on each rival's progress gap to
+  // the player. Rivals behind get a small boost; rivals far ahead ease off.
+  // Keeps the pack tight and the race exciting without feeling unfair.
+  _applyRubberBanding() {
+    const player = this.player;
+    if (!player) return;
+    for (const k of this.karts) {
+      if (k === player) { k.rubber = 1; continue; }
+      const gap = player.progress - k.progress; // >0 means rival is BEHIND player
+      // map gap -> multiplier: behind => up to +12%, ahead => down to -8%
+      let mult = 1 + THREE.MathUtils.clamp(gap * 0.9, -0.08, 0.12);
+      k.rubber = mult;
+    }
+  }
+
   _updateRanking() {
     const sorted = [...this.karts].sort((a, b) => {
       if (a.finished && b.finished) return a.finishTime - b.finishTime;
@@ -299,6 +320,17 @@ export class Game {
       return b.progress - a.progress;
     });
     sorted.forEach((k, i) => (k.place = i + 1));
+
+    // Trash-talk on the player's position changing (throttled).
+    const place = this.player ? this.player.place : 0;
+    if (this._lastPlace == null) this._lastPlace = place;
+    this._tauntCd = (this._tauntCd || 0) - (this._lastDt || 0);
+    if (place !== this._lastPlace && this.state === 'racing' && (this._tauntCd || 0) <= 0) {
+      if (place < this._lastPlace) this.hud.taunt && this.hud.taunt('pass');     // moved up
+      else this.hud.taunt && this.hud.taunt('passed');                          // dropped back
+      this._tauntCd = 3.5; // cooldown so it doesn't spam
+    }
+    this._lastPlace = place;
   }
 
   _updateHud() {
@@ -526,6 +558,8 @@ export class Game {
   }
 
   _finishRace() {
+    // Celebrate a win with a taunt before the results screen.
+    if (this.player && this.player.place === 1 && this.hud.taunt) this.hud.taunt('win');
     // Let AI keep going briefly, then show results
     const results = [...this.karts].sort((a, b) => {
       if (a.finished && b.finished) return a.finishTime - b.finishTime;

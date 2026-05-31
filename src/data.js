@@ -8,12 +8,16 @@
 export const CHARACTERS = [
   { id: 'pip',    name: 'Pip',    skin: 0xffd9a8, shirt: 0xff5a5f, cap: 0xffffff, speed: 5, accel: 7, handling: 8, price: 0 },
   { id: 'bubba',  name: 'Bubba',  skin: 0xe8b07a, shirt: 0x3d8bff, cap: 0x1b3a6b, speed: 8, accel: 4, handling: 5, price: 300 },
-  { id: 'lola',   name: 'Lola',   skin: 0xffcf9e, shirt: 0xff7ad1, cap: 0xfff04d, speed: 6, accel: 6, handling: 7, price: 300 },
+  { id: 'lola',   name: 'Lola',   skin: 0xffcf9e, shirt: 0xff7ad1, cap: 0xfff04d, speed: 6, accel: 6, handling: 7, price: 300, hair: 'pony', hairColor: 0x6b3410 },
   { id: 'gizmo',  name: 'Gizmo',  skin: 0xbfe3c9, shirt: 0x33d6a6, cap: 0x0e8f6e, speed: 6, accel: 8, handling: 6, price: 500 },
-  { id: 'mochi',  name: 'Mochi',  skin: 0xfff2e0, shirt: 0xc77dff, cap: 0x7a3ff2, speed: 5, accel: 6, handling: 9, price: 500 },
+  { id: 'mochi',  name: 'Mochi',  skin: 0xfff2e0, shirt: 0xc77dff, cap: 0x7a3ff2, speed: 5, accel: 6, handling: 9, price: 500, hair: 'bun', hairColor: 0x1a0e22 },
   { id: 'tank',   name: 'Tank',   skin: 0xd9a066, shirt: 0xff9f1c, cap: 0x9c3b00, speed: 9, accel: 3, handling: 4, price: 800 },
   { id: 'zazu',   name: 'Zazu',   skin: 0xffd9a8, shirt: 0x2ec4b6, cap: 0x086375, speed: 7, accel: 6, handling: 6, price: 800 },
   { id: 'nimbus', name: 'Nimbus', skin: 0xeaf2ff, shirt: 0x9bb8ff, cap: 0x5b7cff, speed: 6, accel: 7, handling: 7, price: 1200 },
+  { id: 'ruby',   name: 'Ruby',   skin: 0xffd9b0, shirt: 0xe01e5a, cap: 0x7a0a2a, speed: 7, accel: 7, handling: 6, price: 1000, hair: 'pony', hairColor: 0x2a1208 },
+  { id: 'maya',   name: 'Maya',   skin: 0xc68642, shirt: 0x00b4a0, cap: 0xffd23f, speed: 6, accel: 7, handling: 8, price: 1000, hair: 'bun', hairColor: 0x140a06 },
+  { id: 'iris',   name: 'Iris',   skin: 0xf0c8a0, shirt: 0x8e44ff, cap: 0xe0d2ff, speed: 8, accel: 5, handling: 7, price: 1400, hair: 'pony', hairColor: 0x5b3a8a },
+  { id: 'rex',    name: 'Rex',    skin: 0xa9744f, shirt: 0x222831, cap: 0xff4d4d, speed: 9, accel: 5, handling: 5, price: 1400 },
 ];
 
 // ---------------------------------------------------------------------------

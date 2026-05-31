@@ -74,6 +74,10 @@ export class Kart {
     this.finished = false;
     this.finishTime = 0;
     this.place = 0;
+
+    // Rubber-banding multiplier on top speed (1 = normal). Game sets this for
+    // AI karts each frame so trailing rivals can catch up and leaders ease off.
+    this.rubber = 1;
   }
 
   placeAt(pos, heading) {
@@ -120,7 +124,7 @@ export class Kart {
     // --- Status: lightning shrink slows the kart ---
     const shrunk = this.shrink > 0;
     if (shrunk) this.shrink -= dt;
-    const baseMax = this.maxSpeed * (shrunk ? 0.55 : 1);
+    const baseMax = this.maxSpeed * (shrunk ? 0.55 : 1) * (this.rubber || 1);
 
     // --- Longitudinal ---
     // Gradual acceleration with a smooth curve: strong pull off the line, then

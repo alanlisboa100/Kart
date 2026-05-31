@@ -40,6 +40,10 @@
         <div class="logo-badge">🏁</div>
         <h1 class="logo">KART<span>OPIA</span></h1>
         <p class="tagline">Derrape, turbine, vença. 🏎️💨</p>
+        <div class="player-greet" id="player-greet">
+          <span id="greet-name">Piloto</span>
+          <button class="edit-name" id="btn-edit-name" title="Mudar nome">✏️</button>
+        </div>
         <div class="menu-buttons">
           <button class="menu-btn mb-quick" id="btn-quick">
             <span class="mb-icon">🏁</span>
@@ -66,6 +70,20 @@
       </div>
       <div class="coin-badge" id="coin-badge-title">🪙 <span>0</span></div>
       <div class="level-badge" id="level-badge-title">Nv <span>1</span></div>
+    </section>
+
+    <!-- Profile (create / edit racer name) -->
+    <section id="screen-profile" class="screen">
+      <div class="profile-card">
+        <div class="profile-emoji">🏎️</div>
+        <h1 class="screen-title">Seu Piloto</h1>
+        <p class="screen-sub">Como quer ser chamado nas pistas?</p>
+        <input id="profile-input" class="profile-input" type="text" maxlength="16"
+               placeholder="Digite seu nome" autocomplete="off" />
+        <div class="select-actions">
+          <button class="btn-primary" id="btn-save-profile">Salvar e jogar</button>
+        </div>
+      </div>
     </section>
 
     <!-- Selection -->
@@ -169,6 +187,9 @@
 
     <!-- Transient race message (perfect start, etc.) -->
     <div id="flash-msg" class="flash-msg"></div>
+
+    <!-- Trash-talk taunt bubble -->
+    <div id="taunt" class="taunt-bubble"></div>
 
     <!-- Touch controls -->
     <div id="touch" class="hidden">
