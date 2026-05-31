@@ -135,8 +135,7 @@ export class Input {
 
   get state() {
     const k = this.keys;
-    const up = k['arrowup'] || k['w'] || this.btn.gas;
-    const down = k['arrowdown'] || k['s'] || this.btn.brake;
+    const braking = k['arrowdown'] || k['s'] || this.btn.brake;
     const kbSteer = (k['arrowright'] || k['d'] ? 1 : 0) - (k['arrowleft'] || k['a'] ? 1 : 0);
     const drift = k[' '] || k['shift'] || this.btn.drift;
 
@@ -144,8 +143,10 @@ export class Input {
     if (Math.abs(steer) < 0.06) steer = 0; // dead-zone
 
     return {
-      throttle: up ? 1 : 0,
-      brake: down ? 1 : 0,
+      // MARIO-KART STYLE: the kart auto-accelerates. The player only brakes,
+      // steers, drifts and uses items. Throttle is full unless braking.
+      throttle: braking ? 0 : 1,
+      brake: braking ? 1 : 0,
       // NOTE: the chase camera looks along +Z, which mirrors world X on screen.
       // Negate so that pushing the stick RIGHT turns the kart RIGHT on screen.
       steer: -steer,

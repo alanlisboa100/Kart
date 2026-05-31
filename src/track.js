@@ -36,12 +36,30 @@ export class Track {
 
     this._buildEnvironment();
     this._buildRoad();
+    this._buildCenterLine();
     this._buildFences();
     this._buildStartLine();
     this._buildStartGantry();
     this._buildGrandstands();
     this._buildBoostPads();
     this._buildDecorations();
+  }
+
+  // Dashed center line down the middle of the road for a livelier track read.
+  _buildCenterLine() {
+    const dashMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff, roughness: 0.6, emissive: 0xffffff, emissiveIntensity: 0.05,
+    });
+    const dashGeo = new THREE.BoxGeometry(0.5, 0.02, 3.2);
+    const step = 14; // spacing between dashes (in samples)
+    for (let i = 0; i < this.N; i += step) {
+      const c = this.samples[i];
+      const t = this.tangents[i];
+      const dash = new THREE.Mesh(dashGeo, dashMat);
+      dash.position.set(c.x, 0.06, c.z);
+      dash.rotation.y = Math.atan2(t.x, t.z);
+      this.group.add(dash);
+    }
   }
 
   // Two boost strips per lap, away from the start line.
@@ -82,10 +100,24 @@ export class Track {
   }
 
   _buildEnvironment() {
-    // Ground
+    // Ground with a subtle two-tone checker pattern (livelier than flat color).
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const base = new THREE.Color(this.theme.ground);
+    const lite = base.clone().lerp(new THREE.Color(0xffffff), 0.08);
+    const dark = base.clone().lerp(new THREE.Color(0x000000), 0.08);
+    const toCss = (col) => `rgb(${Math.round(col.r * 255)},${Math.round(col.g * 255)},${Math.round(col.b * 255)})`;
+    for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) {
+      ctx.fillStyle = (x + y) % 2 === 0 ? toCss(lite) : toCss(dark);
+      ctx.fillRect(x * 32, y * 32, 32, 32);
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(120, 120);
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(1400, 1400),
-      new THREE.MeshStandardMaterial({ color: this.theme.ground, roughness: 1 })
+      new THREE.MeshStandardMaterial({ map: tex, roughness: 1 })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.05;
