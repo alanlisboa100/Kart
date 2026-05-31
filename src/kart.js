@@ -51,7 +51,6 @@ export class Kart {
     this.steerSmooth = 0;   // smoothed steering axis for buttery turns
     this.bob = Math.random() * Math.PI * 2; // idle bob phase
     this.bobOffset = 0;
-    this.wallHit = null;    // set on a strong wall impact, consumed by Game for FX
 
     // Drift state
     this.drifting = false;
@@ -218,27 +217,16 @@ export class Kart {
       const overTarget = this.maxSpeed * 0.45;
       if (this.speed > overTarget) this.speed -= 28 * dt;
     }
-    // Wall: clamp back inside and SLIDE along it (don't get pinned).
+    // Wall: gently keep the kart inside and steer it parallel (no harsh impact).
     const limit = track.halfWidth + track.wallMargin;
     if (absLat > limit) {
       const sign = Math.sign(info.lateral) || 1;
       const correction = info.lateral - sign * limit;
       this.pos.x -= info.normal.x * correction;
       this.pos.z -= info.normal.z * correction;
-      // Only scrub the speed that's heading INTO the wall, then steer parallel.
-      const fwd = this.forward();
-      const into = (fwd.x * info.normal.x + fwd.z * info.normal.z) * sign; // >0 = into wall
-      if (into > 0) {
-        const before = this.speed;
-        this.speed *= 1 - Math.min(0.55, into * 0.6);
-        // Flag a wall impact (for FX/sound) when it's a meaningful hit.
-        const lost = before - this.speed;
-        if (into > 0.35 && lost > 4) {
-          this.wallHit = { x: this.pos.x, y: 0.5, z: this.pos.z, mag: Math.min(1, lost / 18) };
-        }
-      }
+      // Smoothly redirect along the track instead of slamming to a stop.
       const tangentHeading = Math.atan2(info.tangent.x, info.tangent.z);
-      this.heading = angleLerp(this.heading, tangentHeading, 0.18);
+      this.heading = angleLerp(this.heading, tangentHeading, 0.2);
       if (this.drifting) this._releaseDrift();
     }
 
