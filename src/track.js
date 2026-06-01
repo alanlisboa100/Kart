@@ -44,11 +44,78 @@ export class Track {
     this._buildTracksideProps();
     this._buildCity();
     this._buildSkyTraffic();
+    this._buildAmbientLife();
     this._buildStartLine();
     this._buildStartGantry();
     this._buildGrandstands();
     this._buildBoostPads();
     this._buildDecorations();
+  }
+
+  // Animated props OFF the track to bring the world to life: spinning windmills
+  // and bobbing balloon markers placed well outside the racing surface.
+  _buildAmbientLife() {
+    this.windmills = [];   // rotating blades
+    this.bobbers = [];     // floating/bobbing markers
+    const rng = mulberry32(0x5EED ^ hashStr(this.def.id));
+    const dark = this.theme.sky < 0x333333;
+
+    const makeWindmill = () => {
+      const g = new THREE.Group();
+      const towerMat = new THREE.MeshStandardMaterial({ color: 0xeae6da, roughness: 0.8 });
+      const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.9, 9, 10), towerMat);
+      tower.position.y = 4.5; g.add(tower);
+      const hub = new THREE.Group(); hub.position.set(0, 8.5, 0.9);
+      const bladeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, side: THREE.DoubleSide });
+      for (let b = 0; b < 4; b++) {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.5, 4.2, 0.12), bladeMat);
+        blade.position.y = 2.1;
+        const holder = new THREE.Group();
+        holder.add(blade);
+        holder.rotation.z = b * Math.PI / 2;
+        hub.add(holder);
+      }
+      g.add(hub);
+      return { group: g, hub };
+    };
+
+    const makeBalloonMarker = () => {
+      const g = new THREE.Group();
+      const colors = [0xff5a5f, 0xffd23f, 0x3d8bff, 0x2ec4b6, 0xff7ad1];
+      const c = colors[Math.floor(rng() * colors.length)];
+      const balloon = new THREE.Mesh(new THREE.SphereGeometry(1.6, 12, 10),
+        new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, emissive: dark ? c : 0x000000, emissiveIntensity: dark ? 0.3 : 0 }));
+      balloon.scale.set(1, 1.25, 1); balloon.position.y = 7; g.add(balloon);
+      const str = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 6, 5),
+        new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.8 }));
+      str.position.y = 3.2; g.add(str);
+      return g;
+    };
+
+    // place windmills and balloon markers well outside the track
+    for (let i = 0; i < 10; i++) {
+      const idx = Math.floor(rng() * this.N);
+      const side = rng() < 0.5 ? 1 : -1;
+      const spot = this._placeOutside(idx, side, this.halfWidth + 30 + rng() * 60, this.halfWidth + 26);
+      if (!spot) continue;
+      const wm = makeWindmill();
+      wm.group.position.set(spot.x, 0, spot.z);
+      wm.group.rotation.y = rng() * Math.PI * 2;
+      wm.group.userData.scenery = true;
+      this.group.add(wm.group);
+      this.windmills.push({ hub: wm.hub, speed: 0.6 + rng() * 0.8 });
+    }
+    for (let i = 0; i < 12; i++) {
+      const idx = Math.floor(rng() * this.N);
+      const side = rng() < 0.5 ? 1 : -1;
+      const spot = this._placeOutside(idx, side, this.halfWidth + 14 + rng() * 50, this.halfWidth + 12);
+      if (!spot) continue;
+      const m = makeBalloonMarker();
+      m.position.set(spot.x, 0, spot.z);
+      m.userData.scenery = true;
+      this.group.add(m);
+      this.bobbers.push({ mesh: m, phase: rng() * Math.PI * 2, amp: 0.6 + rng() * 0.8 });
+    }
   }
 
   // Floating ambience that gently moves: blimps / hot-air balloons drifting
@@ -134,6 +201,16 @@ export class Track {
       for (const f of this.flags) {
         f.mesh.rotation.y = Math.sin(time * 3 + f.phase) * 0.35;
         f.mesh.rotation.z = Math.sin(time * 5 + f.phase) * 0.08;
+      }
+    }
+    // Off-track windmills spin and balloon markers bob for a living world.
+    if (this.windmills) {
+      for (const w of this.windmills) w.hub.rotation.z += w.speed * dt;
+    }
+    if (this.bobbers) {
+      for (const b of this.bobbers) {
+        b.mesh.position.y = Math.sin(time * 0.8 + b.phase) * b.amp;
+        b.mesh.rotation.y += dt * 0.3;
       }
     }
   }
