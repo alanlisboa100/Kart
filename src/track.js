@@ -118,6 +118,21 @@ export class Track {
         a.mesh.position.y = a.baseY + pulse * 0.12;
       }
     }
+    // Crowd "wave": spectators bob up and down, rippling across the stand.
+    if (this.crowd) {
+      for (const c of this.crowd) {
+        const jump = Math.max(0, Math.sin(time * 4 - c.phase)) * 0.35;
+        c.body.position.y = c.baseY + jump;
+        c.head.position.y = c.headBaseY + jump;
+      }
+    }
+    // Flags tremulate (gentle wave + flutter scale).
+    if (this.flags) {
+      for (const f of this.flags) {
+        f.mesh.rotation.y = Math.sin(time * 3 + f.phase) * 0.35;
+        f.mesh.rotation.z = Math.sin(time * 5 + f.phase) * 0.08;
+      }
+    }
   }
 
   // --- Placement helpers: keep scenery OFF the track ---
@@ -562,6 +577,8 @@ export class Track {
 
   // Grandstands with tiered seating and a dense, colorful crowd.
   _buildGrandstands() {
+    this.crowd = [];        // animated spectators (the "wave")
+    this.flags = [];        // tremulating flags
     const standMat = new THREE.MeshStandardMaterial({ color: 0xcacfda, roughness: 0.9 });
     const stepMat = new THREE.MeshStandardMaterial({ color: 0x9aa1b2, roughness: 0.95 });
     const roofMat = new THREE.MeshStandardMaterial({ color: this.theme.curb, roughness: 0.6, metalness: 0.2 });
@@ -604,6 +621,10 @@ export class Track {
           const head = new THREE.Mesh(headGeo, new THREE.MeshStandardMaterial({ color: 0xffd9a8, roughness: 0.85 }));
           head.position.set(cx, yy + 0.5, zz);
           stand.add(head);
+          // register for the "wave": phase depends on seat column so the
+          // jump ripples across the stand.
+          this._crowdPending = this._crowdPending || [];
+          this._crowdPending.push({ body, head, baseY: yy, headBaseY: yy + 0.5, phase: s * 0.5 + r * 0.2 });
         }
       }
 
@@ -624,6 +645,23 @@ export class Track {
         pole.position.set(sx * (WIDTH / 2 - 1), 3.7, -5);
         stand.add(pole);
       }
+
+      // Flags on tall poles atop the stand (tremulate in the update loop)
+      const flagColors = [this.theme.curb, 0xffffff, this.theme.decoColor];
+      for (let f = -1; f <= 1; f++) {
+        const fx = f * (WIDTH / 2 - 2);
+        const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4, 6), poleMat);
+        mast.position.set(fx, 9.6, -2);
+        stand.add(mast);
+        const flagMat = new THREE.MeshStandardMaterial({ color: flagColors[(f + 1) % flagColors.length], roughness: 0.7, side: THREE.DoubleSide });
+        const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.0), flagMat);
+        flag.position.set(fx + 0.85, 11.0, -2);
+        stand.add(flag);
+        this.flags.push({ mesh: flag, phase: Math.random() * Math.PI * 2 });
+      }
+
+      // commit the pending crowd of this stand
+      if (this._crowdPending) { for (const c of this._crowdPending) this.crowd.push(c); this._crowdPending = []; }
 
       stand.position.set(bx, 0, bz);
       stand.rotation.y = heading + (side < 0 ? Math.PI : 0);

@@ -264,6 +264,7 @@ export class Game {
     this._wasBoosting = false;
     this._launchResult = null; // perfect-start state (set during countdown)
     this._lastPlace = null;    // for trash-talk on position changes
+    this._hudLastLap = null;   // for the "final lap" announcement
     this._tauntCd = 0;
     if (this.hud.setItem) this.hud.setItem(null);
     if (this.hud.setCoins) this.hud.setCoins(0);
@@ -392,6 +393,17 @@ export class Game {
     this.hud.setLap(Math.min(p.lap + 1, this.totalLaps), this.totalLaps);
     this.hud.setPos(p.place, this.karts.length);
     this.hud.setSpeed(Math.round(Math.abs(p.speed) * 3.6));
+
+    // "Última Volta!" announcement when the player enters the final lap.
+    const displayLap = Math.min(p.lap + 1, this.totalLaps);
+    if (this._hudLastLap == null) this._hudLastLap = displayLap;
+    if (displayLap !== this._hudLastLap) {
+      this._hudLastLap = displayLap;
+      if (displayLap === this.totalLaps && this.totalLaps > 1 && this.state === 'racing') {
+        if (this.hud.flashMsg) this.hud.flashMsg('ÚLTIMA VOLTA! 🏁');
+        if (this.audio) this.audio.play('count');
+      }
+    }
     this.hud.setDrift(p.drifting ? p.driftTier : 0);
     this.hud.setTime(this.raceTime);
     this._drawMinimap();
@@ -659,13 +671,29 @@ export class Game {
     // Stable up vector + plain lookAt => rock-solid horizon (no roll hacks).
     const dist = 13 + speedFactor * 2.0;
     const height = 6.5;
-    const desired = new THREE.Vector3()
-      .copy(p.pos)
-      .addScaledVector(fwd, -dist)
-      .add(new THREE.Vector3(0, height, 0));
+    let desired;
+    if (slow && this.state === 'countdown') {
+      // Cinematic intro: orbit around the kart while the lights count down,
+      // sweeping smoothly into the chase position by "GO".
+      const a = Math.max(0, Math.min(1, this.countdown / 3.2)); // 1 -> 0 over the count
+      const orbit = a * Math.PI * 1.1;                          // swings around to behind
+      const ox = Math.sin(p.heading + Math.PI + orbit);
+      const oz = Math.cos(p.heading + Math.PI + orbit);
+      const cinH = height + a * 2.5;                            // start higher, drop down
+      desired = new THREE.Vector3(
+        p.pos.x + ox * dist,
+        p.pos.y + cinH,
+        p.pos.z + oz * dist
+      );
+    } else {
+      desired = new THREE.Vector3()
+        .copy(p.pos)
+        .addScaledVector(fwd, -dist)
+        .add(new THREE.Vector3(0, height, 0));
+    }
 
     // Frame-rate-independent smoothing, snappy enough to keep up with the kart.
-    const posK = slow ? 0.08 : 1 - Math.pow(0.0006, dt);
+    const posK = slow ? 0.12 : 1 - Math.pow(0.0006, dt);
     this.camera.position.lerp(desired, posK);
 
     // Aim slightly ahead of and above the kart for good track framing.
@@ -674,7 +702,7 @@ export class Game {
       p.pos.y + 1.8,
       p.pos.z + fwd.z * 9
     );
-    this.camTarget.lerp(lookGoal, slow ? 0.08 : 1 - Math.pow(0.0006, dt));
+    this.camTarget.lerp(lookGoal, slow ? 0.1 : 1 - Math.pow(0.0006, dt));
     this.camera.up.set(0, 1, 0);
     this.camera.lookAt(this.camTarget);
 

@@ -121,8 +121,9 @@ export function buildCharacter(charDef) {
 // Build a chunky little kart. Returns { group, wheels, frontWheels, flame }.
 export function buildKart(kartDef) {
   const group = new THREE.Group();
-  const bodyMat = mat(kartDef.color, { metal: 0.3, rough: 0.4 });
-  const accentMat = mat(kartDef.accent, { rough: 0.6 });
+  // Glossier, more metallic body so the bloom/lighting reads as premium paint.
+  const bodyMat = mat(kartDef.color, { metal: 0.55, rough: 0.28 });
+  const accentMat = mat(kartDef.accent, { metal: 0.4, rough: 0.4 });
 
   // Chassis (layered boxes for a softer look)
   const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.4, 2.2), bodyMat);
@@ -219,6 +220,7 @@ export function buildKart(kartDef) {
   wheel.position.set(0, 0.85, 0.25);
   wheel.rotation.x = 1.1;
   group.add(wheel);
+  const steeringWheel = wheel; // exposed for animation
 
   // Spoiler
   const spoilerBar = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.12, 0.35), accentMat);
@@ -306,5 +308,5 @@ export function buildKart(kartDef) {
   shield.visible = false;
   group.add(shield);
 
-  return { group, wheels, frontWheels, flame, sparks, shield };
+  return { group, wheels, frontWheels, flame, sparks, shield, steeringWheel };
 }

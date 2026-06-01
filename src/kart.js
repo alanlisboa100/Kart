@@ -36,9 +36,11 @@ export class Kart {
     this.frontWheels = built.frontWheels;
     this.flame = built.flame;
     this.sparks = built.sparks || [];
+    this.steeringWheel = built.steeringWheel || null;
     const driver = buildCharacter(charDef);
     driver.position.set(0, 0.35, -0.35);
     driver.scale.setScalar(0.85);
+    this.driver = driver;
     this.mesh.add(driver);
     scene.add(this.mesh);
 
@@ -314,6 +316,19 @@ export class Kart {
     this.bob += dt * (6 + Math.abs(this.speed) * 0.3);
     const bobAmt = Math.min(0.06, 0.02 + Math.abs(this.speed) * 0.0016);
     this.bobOffset = Math.sin(this.bob) * bobAmt;
+
+    // Driver + steering wheel react to steering for a lively, hand-animated feel
+    const steerVis = this.drifting ? this.driftDir : steer;
+    if (this.steeringWheel) {
+      // turn the wheel around its local up-ish axis (it's tilted ~1.1 rad on X)
+      this.steeringWheel.rotation.y = THREE.MathUtils.lerp(
+        this.steeringWheel.rotation.y, -steerVis * 0.6, 0.2);
+    }
+    if (this.driver) {
+      // subtle body lean + head turn into the corner
+      this.driver.rotation.z = THREE.MathUtils.lerp(this.driver.rotation.z, steerVis * 0.18, 0.15);
+      this.driver.rotation.y = THREE.MathUtils.lerp(this.driver.rotation.y, -steerVis * 0.22, 0.15);
+    }
   }
 
   _applyTransform() {
