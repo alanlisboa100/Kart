@@ -28,6 +28,12 @@ export class Game {
     this.fov = 62;
     this.sky = null;
 
+    // Post-processing (bloom) - loaded lazily & optionally. If the addons
+    // aren't available (e.g. offline), we fall back to plain rendering.
+    this.composer = null;
+    this.bloomPass = null;
+    this._setupPostFX();
+
     this._addLights();
 
     this.clock = new THREE.Clock();
@@ -64,6 +70,38 @@ export class Game {
     this.fill = new THREE.DirectionalLight(0xbfd4ff, 0.35);
     this.fill.position.set(-50, 40, -30);
     this.scene.add(this.fill);
+    // warm rim/back light for a bit of premium pop
+    this.rim = new THREE.DirectionalLight(0xffd9a8, 0.4);
+    this.rim.position.set(0, 60, -120);
+    this.scene.add(this.rim);
+  }
+
+  // Lazily set up a bloom post-processing pipeline. Wrapped in try/catch and a
+  // dynamic import so the game still runs (plain render) if addons fail to load.
+  async _setupPostFX() {
+    try {
+      const w = this.canvas.clientWidth || window.innerWidth;
+      const h = this.canvas.clientHeight || window.innerHeight;
+      const [{ EffectComposer }, { RenderPass }, { UnrealBloomPass }, { Vector2 }] = await Promise.all([
+        import('three/addons/postprocessing/EffectComposer.js'),
+        import('three/addons/postprocessing/RenderPass.js'),
+        import('three/addons/postprocessing/UnrealBloomPass.js'),
+        import('three'),
+      ]);
+      const composer = new EffectComposer(this.renderer);
+      composer.addPass(new RenderPass(this.scene, this.camera));
+      // (resolution, strength, radius, threshold) - tuned for a soft glow on
+      // bright stuff (neon, turbo flames, items) without washing the scene out.
+      const bloom = new UnrealBloomPass(new Vector2(w, h), 0.55, 0.5, 0.78);
+      composer.addPass(bloom);
+      composer.setSize(w, h);
+      composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      this.composer = composer;
+      this.bloomPass = bloom;
+    } catch (e) {
+      // Addons unavailable -> keep plain rendering. No crash.
+      this.composer = null;
+    }
   }
 
   // Big gradient sky dome + a soft sun glow + drifting clouds, themed per track.
@@ -129,6 +167,7 @@ export class Game {
     const w = this.canvas.clientWidth || window.innerWidth;
     const h = this.canvas.clientHeight || window.innerHeight;
     this.renderer.setSize(w, h, false);
+    if (this.composer) this.composer.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   }
@@ -239,7 +278,8 @@ export class Game {
     let dt = this.clock.getDelta();
     dt = Math.min(dt, 0.05); // clamp big gaps
     this._update(dt);
-    this.renderer.render(this.scene, this.camera);
+    if (this.composer) this.composer.render();
+    else this.renderer.render(this.scene, this.camera);
   };
 
   _update(dt) {
@@ -674,6 +714,7 @@ export class Game {
     this._running = false;
     window.removeEventListener('resize', this._onResize);
     this.cleanup();
+    if (this.composer && this.composer.dispose) this.composer.dispose();
     this.renderer.dispose();
   }
 }
