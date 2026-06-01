@@ -27,13 +27,13 @@ export class AIController {
     ));
 
     // --- Choose a target speed: slower for sharper bends ---
-    // On straights the AI now aims for ~full speed so rivals match the player.
-    const cornerFactor = clamp(1 - bend * 0.42, 0.55, 1);
+    // Carry more speed through corners so rivals stay genuinely competitive.
+    const cornerFactor = clamp(1 - bend * 0.34, 0.62, 1);
     const targetSpeed = kart.maxSpeed * cornerFactor * (0.99 + 0.01 * this.skill);
 
     let throttle = 0, brake = 0;
     if (kart.speed < targetSpeed - 0.5) throttle = 1;
-    else if (kart.speed > targetSpeed + 3) brake = clamp((kart.speed - targetSpeed) / 10, 0, 1);
+    else if (kart.speed > targetSpeed + 4) brake = clamp((kart.speed - targetSpeed) / 12, 0, 1);
     else throttle = 1; // hold full power in the cruise band
 
     // --- Drift through genuinely sharp turns when fast ---

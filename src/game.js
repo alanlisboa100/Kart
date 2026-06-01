@@ -319,10 +319,10 @@ export class Game {
     for (const k of this.karts) {
       if (k === player) { k.rubber = 1; continue; }
       const gap = player.progress - k.progress; // >0 means rival is BEHIND player
-      // Baseline parity (+2%) so rivals don't trail off on their own, plus a
-      // stronger catch-up when behind and a mild ease-off when ahead.
-      let mult = 1.02 + THREE.MathUtils.clamp(gap * 1.1, -0.05, 0.13);
-      k.rubber = THREE.MathUtils.clamp(mult, 0.97, 1.15);
+      // Baseline parity (+4%) so rivals are genuinely competitive, with a
+      // strong catch-up when behind (up to +24%) and a mild ease-off if ahead.
+      let mult = 1.04 + THREE.MathUtils.clamp(gap * 1.6, -0.06, 0.20);
+      k.rubber = THREE.MathUtils.clamp(mult, 0.97, 1.26);
     }
   }
 
