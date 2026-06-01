@@ -299,6 +299,45 @@ export function buildKart(kartDef) {
   shadow.position.y = 0.02;
   group.add(shadow);
 
+  // ---- WILD karts: extra over-the-top anime-style add-ons ----
+  if (kartDef.wild === 'spoiler') {
+    // huge glowing GT wing
+    const wingMat = mat(kartDef.accent, { metal: 0.5, rough: 0.3 });
+    wingMat.emissive = new THREE.Color(kartDef.accent);
+    wingMat.emissiveIntensity = 0.5;
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.18, 0.6), wingMat);
+    wing.position.set(0, 1.5, -1.25);
+    group.add(wing);
+    for (const sx of [-1, 1]) {
+      const strut = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.7, 0.14), wingMat);
+      strut.position.set(0.6 * sx, 1.15, -1.25);
+      group.add(strut);
+    }
+  } else if (kartDef.wild === 'rocket') {
+    // twin rocket boosters at the back
+    const tubeMat = mat(0xdfe6ef, { metal: 0.7, rough: 0.25 });
+    const nozMat = new THREE.MeshStandardMaterial({ color: kartDef.accent, emissive: kartDef.accent, emissiveIntensity: 0.6, roughness: 0.4 });
+    for (const sx of [-1, 1]) {
+      const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 1.1, 12), tubeMat);
+      tube.rotation.x = Math.PI / 2;
+      tube.position.set(0.55 * sx, 0.7, -1.2);
+      group.add(tube);
+      const noz = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.4, 12), nozMat);
+      noz.rotation.x = -Math.PI / 2;
+      noz.position.set(0.55 * sx, 0.7, -1.8);
+      group.add(noz);
+    }
+  } else if (kartDef.wild === 'flame') {
+    // glowing flame fins along the sides
+    const finMat = new THREE.MeshStandardMaterial({ color: 0xffe14d, emissive: 0xff6a00, emissiveIntensity: 0.7, roughness: 0.4 });
+    for (const sx of [-1, 1]) {
+      const fin = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.2, 4), finMat);
+      fin.rotation.z = Math.PI / 2 * sx;
+      fin.position.set(0.95 * sx, 0.7, -0.4);
+      group.add(fin);
+    }
+  }
+
   // Shield bubble (hidden until a shield item is used)
   const shield = new THREE.Mesh(
     new THREE.SphereGeometry(1.7, 16, 12),

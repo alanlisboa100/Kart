@@ -336,7 +336,9 @@ export class Kart {
     this.mesh.position.y = this.pos.y + (this.bobOffset || 0);
     this.mesh.rotation.y = this.heading + this.visualYaw + this.spinAngle;
     this.mesh.rotation.z = this.lean;
-    this.mesh.scale.setScalar(this.shrink > 0 ? 0.55 : 1);
+    // Karts are slightly bigger overall (1.15x) for a chunkier, "crazy race" look.
+    const s = 1.15 * (this.shrink > 0 ? 0.55 : 1);
+    this.mesh.scale.setScalar(s);
   }
 
   // --- Item effects ---

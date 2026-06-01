@@ -7,14 +7,17 @@ export class Track {
   constructor(def) {
     this.def = def;
     this.theme = def.theme;
-    this.width = def.width;
-    this.halfWidth = def.width / 2;
+    // Slightly bigger tracks (wider road) so the chunkier karts have room.
+    this.width = def.width + 2;
+    this.halfWidth = this.width / 2;
     this.wallMargin = 2.2; // extra room before the invisible wall
     this.laps = def.laps || 3;
     this.group = new THREE.Group();
 
     // --- Build smooth closed curve from control points ---
-    const ctrl = makeLoop(def.loop).map(([x, z]) => new THREE.Vector3(x, 0, z));
+    // Scale the loop up a touch (6%) for a slightly larger circuit.
+    const LOOP_SCALE = 1.06;
+    const ctrl = makeLoop(def.loop).map(([x, z]) => new THREE.Vector3(x * LOOP_SCALE, 0, z * LOOP_SCALE));
     this.curve = new THREE.CatmullRomCurve3(ctrl, true, 'catmullrom', 0.5);
 
     // Evenly spaced samples around the loop (used for everything).

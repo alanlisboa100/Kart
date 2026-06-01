@@ -30,6 +30,9 @@ export const KARTS = [
   { id: 'drift',   name: 'Drift King',      color: 0x9b5de5, accent: 0x2b0a4a, dSpeed: 1,  dAccel: 0,  dHandling: 2,  price: 700 },
   { id: 'cloud',   name: 'Cloud Rider',     color: 0x90e0ef, accent: 0xffffff, dSpeed: 0,  dAccel: 2,  dHandling: 1,  price: 700 },
   { id: 'bolt',    name: 'Bolt',            color: 0x2ec4b6, accent: 0x0b5d56, dSpeed: 2,  dAccel: 1,  dHandling: -1, price: 1000 },
+  { id: 'inferno', name: 'Inferno Z',       color: 0xff2d2d, accent: 0xffe14d, dSpeed: 3,  dAccel: 0,  dHandling: -1, price: 1600, wild: 'flame' },
+  { id: 'otaku',   name: 'Otaku Rocket',    color: 0xff5fd0, accent: 0x6a00ff, dSpeed: 2,  dAccel: 2,  dHandling: 1,  price: 1800, wild: 'rocket' },
+  { id: 'samurai', name: 'Neo Samurai',     color: 0x1b1f2a, accent: 0x00f5d4, dSpeed: 3,  dAccel: 1,  dHandling: 1,  price: 2200, wild: 'spoiler' },
 ];
 
 // ---------------------------------------------------------------------------
