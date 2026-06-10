@@ -4,159 +4,53 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<title>Princesas Force 3D — FPS Tactical</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:monospace;user-select:none;touch-action:none;}
-#app{position:fixed;inset:0;}
-.screen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;}
-.screen.active{display:flex;}
-
-/* MENU */
-#menu{background:linear-gradient(180deg,#0a0a0a,#1a1a2e);justify-content:center;}
-.menu-box{text-align:center;max-width:500px;width:90%;}
-.menu-box h1{font-size:clamp(28px,8vw,48px);color:#fff;margin-bottom:4px;}
-.menu-box h1 span{color:#d4a44a;}
-.menu-box p{color:#666;font-size:13px;margin-bottom:24px;}
-.mbtn{display:block;width:100%;max-width:300px;margin:8px auto;padding:14px;background:#1a1a1a;border:1px solid #333;color:#fff;font-size:15px;font-family:inherit;cursor:pointer;border-radius:3px;}
-.mbtn:hover{background:#2a2a2a;border-color:#555;}
-.mbtn.primary{background:#d4a44a;color:#000;border-color:#d4a44a;font-weight:bold;}
-
-/* GAME */
-#game-screen canvas{display:block;}
-
-/* HUD overlay */
-.hud{position:absolute;inset:0;pointer-events:none;}
-.hud-top{position:absolute;top:0;left:0;right:0;display:flex;justify-content:center;padding:6px;}
-.score-box{display:flex;background:rgba(0,0,0,.7);border-radius:3px;overflow:hidden;font-size:18px;font-weight:bold;}
-.sc-t{background:rgba(180,100,30,.6);padding:4px 16px;color:#fff;}
-.sc-m{padding:4px 10px;color:#888;font-size:14px;}
-.sc-ct{background:rgba(40,80,160,.6);padding:4px 16px;color:#fff;}
-.timer{position:absolute;top:32px;left:50%;transform:translateX(-50%);font-size:14px;color:#aaa;background:rgba(0,0,0,.5);padding:2px 10px;border-radius:3px;}
-
-.hud-bot{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-between;padding:8px 12px;background:linear-gradient(transparent,rgba(0,0,0,.6));}
-.hb-left{display:flex;gap:12px;align-items:center;font-size:18px;font-weight:bold;}
-.hp-num{color:#4caf50;}.ar-num{color:#68b8ff;}
-.hb-right{text-align:right;}
-.wep-label{font-size:11px;color:#888;}
-.ammo-num{font-size:26px;font-weight:bold;color:#fff;}
-.ammo-num.low{color:#f44336;}
-.money-lbl{position:absolute;bottom:40px;left:12px;color:#8bc34a;font-size:14px;font-weight:bold;}
-
-.crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px;}
-.crosshair::before,.crosshair::after{content:'';position:absolute;background:rgba(0,255,0,.7);}
-.crosshair::before{width:2px;height:100%;left:50%;transform:translateX(-50%);}
-.crosshair::after{width:100%;height:2px;top:50%;transform:translateY(-50%);}
-.ch-dot{position:absolute;top:50%;left:50%;width:3px;height:3px;background:rgba(0,255,0,.6);border-radius:50%;transform:translate(-50%,-50%);}
-
-.kfeed{position:absolute;top:44px;right:8px;text-align:right;}
-.kf-item{font-size:11px;color:#ccc;background:rgba(0,0,0,.5);padding:1px 6px;margin-bottom:2px;border-radius:2px;}
-.cmsg{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);font-size:20px;font-weight:bold;color:#fff;text-shadow:0 2px 6px #000;opacity:0;transition:opacity .2s;text-transform:uppercase;}
-.cmsg.show{opacity:1;}
-
-/* Weapon view */
-.wep-view{position:absolute;bottom:0;right:10%;width:200px;height:180px;pointer-events:none;}
-.wep-view img,.wep-view canvas{width:100%;height:100%;object-fit:contain;}
-
-/* Mobile controls */
-.touch-controls{pointer-events:auto;}
-.jzone{position:absolute;left:0;bottom:0;width:40%;height:200px;z-index:10;pointer-events:auto;}
-.jbase{position:absolute;left:28px;bottom:40px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);}
-.jknob{position:absolute;top:50%;left:50%;width:42px;height:42px;transform:translate(-50%,-50%);border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.15);}
-.azone{position:absolute;right:0;top:0;width:60%;height:70%;z-index:8;pointer-events:auto;}
-.actbtns{position:absolute;right:14px;bottom:40px;display:flex;align-items:flex-end;gap:8px;z-index:10;pointer-events:auto;}
-.abtn{width:50px;height:50px;border-radius:50%;border:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;}
-.abtn.fire{width:76px;height:76px;font-size:26px;background:rgba(233,69,96,.12);border-color:rgba(233,69,96,.35);}
-.abtn:active{background:rgba(255,255,255,.12);}
-.abtn .bdg{position:absolute;top:-2px;right:-2px;width:14px;height:14px;background:#f44336;color:#fff;font-size:8px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
-.pbtn{position:absolute;top:4px;right:4px;width:28px;height:28px;background:rgba(0,0,0,.5);border:1px solid #333;color:#aaa;font-size:11px;border-radius:3px;cursor:pointer;z-index:11;pointer-events:auto;}
-
-/* Overlays */
-.ov{position:absolute;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:30;pointer-events:auto;}
-.ov.hid{display:none;}
-.ocard{background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:22px;text-align:center;max-width:400px;width:90%;}
-.ocard h2{color:#d4a44a;font-size:18px;margin-bottom:8px;}
-.ocard p{color:#888;font-size:13px;margin:4px 0 12px;}
-.money-res{color:#8bc34a;font-size:16px;font-weight:bold;}
-</style>
+<title>Princesas Force 3D</title>
+<link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
 <div id="app">
 
-<!-- MENU -->
 <section id="menu" class="screen active">
   <div class="menu-box">
-    <h1>PRINCESAS <span>FORCE</span></h1>
-    <p>3D First-Person Shooter · CS 1.6 Style</p>
-    <button class="mbtn primary" id="btn-play">PLAY MATCH</button>
-    <button class="mbtn" id="btn-info">HOW TO PLAY</button>
-    <p style="margin-top:20px;color:#333;font-size:11px;">v5.0 · 3D · Three.js · 5v5</p>
+    <h1>PRINCESAS<br><span>FORCE 3D</span></h1>
+    <p class="sub">FPS Raycaster · Estilo CS 1.6</p>
+    <button class="mbtn gold" id="btn-play">⚔️ JOGAR</button>
+    <button class="mbtn" id="btn-help">📖 CONTROLES</button>
+    <p class="ver">v6.0 · 3D Raycaster · Sem dependências</p>
   </div>
 </section>
 
-<!-- GAME -->
-<section id="game-screen" class="screen">
+<section id="game" class="screen">
+  <canvas id="cv"></canvas>
   <div class="hud">
     <div class="hud-top">
-      <div class="score-box">
-        <div class="sc-t" id="st">0</div>
-        <div class="sc-m">:</div>
-        <div class="sc-ct" id="sct">0</div>
-      </div>
+      <div class="sc"><span class="sc-t" id="ht-t">0</span>:<span class="sc-ct" id="ht-ct">0</span></div>
+      <div class="tm" id="ht-time">0:55</div>
     </div>
-    <div class="timer" id="timer">0:55</div>
     <div class="hud-bot">
-      <div class="hb-left">
-        <span class="hp-num">+<span id="hp">100</span></span>
-        <span class="ar-num">🛡<span id="ar">0</span></span>
+      <div class="hb-l">
+        <span class="hp-v">+<span id="hb-hp">100</span></span>
       </div>
-      <div class="hb-right">
-        <div class="wep-label" id="wlabel">Glock-18</div>
-        <div class="ammo-num" id="ammo">20/20</div>
+      <div class="hb-c" id="hb-money">$800</div>
+      <div class="hb-r">
+        <span class="wn" id="hb-wep">Glock-18</span>
+        <span class="am" id="hb-ammo">20/20</span>
       </div>
     </div>
-    <div class="money-lbl" id="money">$800</div>
-    <div class="crosshair"><div class="ch-dot"></div></div>
-    <div class="kfeed" id="kfeed"></div>
-    <div class="cmsg" id="cmsg"></div>
+    <div class="crosshair"></div>
+    <div class="kf" id="kf"></div>
+    <div class="msg" id="msg"></div>
   </div>
-
-  <!-- Touch controls -->
-  <div class="touch-controls">
-    <div class="jzone" id="jzone">
-      <div class="jbase" id="jbase"><div class="jknob" id="jknob"></div></div>
-    </div>
-    <div class="azone" id="azone"></div>
-    <div class="actbtns">
-      <button class="abtn" id="btn-reload">↻</button>
-      <button class="abtn" id="btn-nade">💣<span class="bdg" id="nade-c">1</span></button>
-      <button class="abtn fire" id="btn-fire">⊕</button>
-    </div>
-    <button class="pbtn" id="btn-pause">⏸</button>
-  </div>
-
-  <!-- Overlays -->
-  <div class="ov hid" id="ov-end">
-    <div class="ocard">
-      <h2 id="end-title">ROUND WON</h2>
-      <p id="end-sub"></p>
-      <p class="money-res" id="end-money"></p>
-      <button class="mbtn primary" id="btn-next">NEXT ROUND</button>
-      <button class="mbtn" id="btn-quit">QUIT</button>
-    </div>
-  </div>
-  <div class="ov hid" id="ov-pause">
-    <div class="ocard">
-      <h2>PAUSED</h2>
-      <button class="mbtn primary" id="btn-resume">RESUME</button>
-      <button class="mbtn" id="btn-quit2">QUIT</button>
-    </div>
+  <div class="jz" id="jz"><div class="jb" id="jb"><div class="jk" id="jk"></div></div></div>
+  <div class="az" id="az"></div>
+  <div class="ab">
+    <button class="abtn" id="b-rel">↻</button>
+    <button class="abtn" id="b-nade">💣</button>
+    <button class="abtn fire" id="b-fire">⊕</button>
   </div>
 </section>
 
 </div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="js/fps3d.js"></script>
 </body>
 </html>
