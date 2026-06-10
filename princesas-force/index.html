@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Princesas Force 💖 - Mobile FPS</title>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div id="app">
+
+<!-- MENU PRINCIPAL -->
+<section id="screen-menu" class="screen active">
+  <div class="sparkle-bg"></div>
+  <div class="menu-content">
+    <div class="menu-crown">👑</div>
+    <h1 class="logo">Princesas<span>Force</span></h1>
+    <p class="tagline">💖 Combate Fofo Estilo Crossfire 💖</p>
+    <div class="menu-buttons">
+      <button class="btn btn-big pulse" data-go="screen-char">🎀 JOGAR</button>
+      <button class="btn btn-pink" data-go="screen-shop">🛍️ LOJA DE ARMAS</button>
+      <button class="btn btn-ghost" data-go="screen-howto">📖 COMO JOGAR</button>
+    </div>
+    <div class="wallet-display">💰 <span id="menu-money">1500</span> moedas</div>
+    <p class="credit">v2.0 Premium · feito com 💕</p>
+  </div>
+</section>
+
+<!-- COMO JOGAR -->
+<section id="screen-howto" class="screen">
+  <div class="panel">
+    <h2>📖 Como Jogar</h2>
+    <ul class="howto">
+      <li>🕹️ <b>Joystick esquerdo</b> — Mover personagem</li>
+      <li>🎯 <b>Auto-mira</b> — Aponta no inimigo mais próximo</li>
+      <li>🔫 <b>Botão de tiro</b> — Segurar para atirar</li>
+      <li>💣 <b>Granada cupcake</b> — Arremessa explosivo fofo</li>
+      <li>🔄 <b>Recarregar</b> — Recarrega munição</li>
+      <li>💰 <b>Dinheiro</b> — Ganhe por kills e rounds vencidos</li>
+      <li>🛍️ <b>Loja</b> — Compre armas melhores entre rounds</li>
+      <li>👑 <b>Objetivo</b> — Elimine o time inimigo! Melhor de 7 rounds</li>
+      <li>⌨️ <b>PC:</b> WASD mover · Mouse mirar/atirar · R recarregar · G granada · B loja</li>
+    </ul>
+    <button class="btn" data-go="screen-menu">⬅️ Voltar</button>
+  </div>
+</section>
+
+<!-- LOJA DE ARMAS -->
+<section id="screen-shop" class="screen">
+  <div class="panel wide">
+    <div class="shop-header">
+      <h2>🛍️ Loja de Armas</h2>
+      <div class="wallet-badge">💰 <span id="shop-money">1500</span></div>
+    </div>
+    <div id="shop-grid" class="grid shop-grid"></div>
+    <div class="shop-info">
+      <p>💡 Armas compradas ficam disponíveis para sempre!</p>
+    </div>
+    <button class="btn" data-go="screen-menu">⬅️ Voltar</button>
+  </div>
+</section>
+
+<!-- SELEÇÃO PERSONAGEM -->
+<section id="screen-char" class="screen">
+  <div class="panel wide">
+    <h2>👑 Escolha sua Princesa</h2>
+    <div id="char-grid" class="grid"></div>
+    <button class="btn btn-big" id="char-next" disabled>Escolher Arma ➡️</button>
+  </div>
+</section>
+
+<!-- SELEÇÃO ARMA PRÉ-PARTIDA -->
+<section id="screen-loadout" class="screen">
+  <div class="panel wide">
+    <h2>🔫 Escolha sua Arma</h2>
+    <div id="loadout-grid" class="grid"></div>
+    <div class="map-actions">
+      <button class="btn btn-ghost" data-go="screen-char">⬅️ Voltar</button>
+      <button class="btn btn-big" id="loadout-next" disabled>Escolher Mapa ➡️</button>
+    </div>
+  </div>
+</section>
+
+<!-- SELEÇÃO MAPA -->
+<section id="screen-map" class="screen">
+  <div class="panel wide">
+    <h2>🗺️ Escolha o Mapa</h2>
+    <div id="map-grid" class="grid"></div>
+    <div class="map-actions">
+      <button class="btn btn-ghost" data-go="screen-loadout">⬅️ Voltar</button>
+      <button class="btn btn-big" id="map-start" disabled>🎀 Iniciar Batalha!</button>
+    </div>
+  </div>
+</section>
+
+<!-- JOGO -->
+<section id="screen-game" class="screen">
+  <canvas id="game-canvas"></canvas>
+
+  <!-- HUD topo -->
+  <div id="hud-top">
+    <div class="hud-team hud-pink">💖 <span id="score-pink">0</span></div>
+    <div class="hud-center">
+      <div id="round-timer">0:45</div>
+      <div id="round-label">Round 1/7</div>
+    </div>
+    <div class="hud-team hud-blue"><span id="score-blue">0</span> 💙</div>
+  </div>
+
+  <!-- HUD player -->
+  <div id="hud-player">
+    <div class="hp-wrap">
+      <span class="hp-icon">❤️</span>
+      <div class="hp-bar"><div id="hp-fill"></div></div>
+      <span id="hp-text">100</span>
+    </div>
+  </div>
+
+  <!-- Munição -->
+  <div id="hud-ammo">
+    <span id="weapon-name">Pistola Coração</span>
+    <div id="ammo-text"><span id="ammo-cur">12</span>/<span id="ammo-max">12</span></div>
+  </div>
+
+  <!-- Dinheiro in-game -->
+  <div id="hud-money">💰 <span id="game-money">1500</span></div>
+
+  <!-- Kill feed -->
+  <div id="kill-feed"></div>
+
+  <!-- Toast -->
+  <div id="center-toast"></div>
+
+  <!-- Joystick -->
+  <div id="joystick-zone" class="touch-zone">
+    <div id="joystick-base"><div id="joystick-knob"></div></div>
+  </div>
+
+  <!-- Botões ação -->
+  <div id="action-buttons">
+    <button id="btn-reload" class="round-btn small">🔄</button>
+    <button id="btn-nade" class="round-btn small">💣<span class="badge" id="nade-count">2</span></button>
+    <button id="btn-fire" class="round-btn fire">🔫</button>
+  </div>
+
+  <button id="btn-pause" class="pause-btn">⏸️</button>
+
+  <!-- Buy menu (mid-game) -->
+  <div id="overlay-buy" class="overlay hidden">
+    <div class="result-card wide-card">
+      <h2>🛍️ Comprar Arma (Round)</h2>
+      <div class="wallet-badge">💰 <span id="buy-money">1500</span></div>
+      <div id="buy-grid" class="grid shop-grid compact"></div>
+      <button class="btn" id="buy-close">❌ Fechar</button>
+    </div>
+  </div>
+
+  <!-- Round result -->
+  <div id="overlay-result" class="overlay hidden">
+    <div class="result-card">
+      <h2 id="result-title">Round Vencido! 🎉</h2>
+      <p id="result-sub"></p>
+      <p id="result-money" class="money-earned"></p>
+      <button class="btn btn-big" id="result-next">Continuar ➡️</button>
+      <button class="btn btn-ghost" data-go="screen-menu" id="result-menu">🏠 Menu</button>
+    </div>
+  </div>
+
+  <!-- Pause -->
+  <div id="overlay-pause" class="overlay hidden">
+    <div class="result-card">
+      <h2>⏸️ Pausado</h2>
+      <button class="btn btn-big" id="resume">▶️ Continuar</button>
+      <button class="btn btn-ghost" data-go="screen-menu">🏠 Menu</button>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/input.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
