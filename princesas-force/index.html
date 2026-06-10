@@ -4,146 +4,135 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<title>Princesas Force v3 — Tactical Shooter</title>
+<title>Princesas Force · Tactical Shooter</title>
 <link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
 <div id="app">
 
-<!-- MENU -->
 <section id="screen-menu" class="screen active">
-  <div class="menu-bg"></div>
-  <div class="menu-content">
-    <h1 class="logo">PRINCESAS<span>FORCE</span></h1>
-    <p class="tagline">Tactical Shooter · CS 1.6 Style</p>
-    <div class="menu-buttons">
-      <button class="btn btn-big" data-go="screen-char">⚔️ PLAY MATCH</button>
-      <button class="btn btn-ghost" data-go="screen-howto">📖 HOW TO PLAY</button>
+  <div class="menu-wrap">
+    <div class="menu-title">PRINCESAS <span>FORCE</span></div>
+    <div class="menu-sub">5v5 · Tactical Shooter · Buy System · MR12</div>
+    <div class="menu-btns">
+      <button class="mbtn primary" data-go="screen-char">FIND MATCH</button>
+      <button class="mbtn" data-go="screen-howto">HOW TO PLAY</button>
     </div>
-    <p class="version">v3.0 · 5v5 Tactical · Buy System · MR12</p>
+    <div class="menu-ver">v4.0 · Counter-Strike Style</div>
   </div>
 </section>
 
-<!-- HOW TO PLAY -->
 <section id="screen-howto" class="screen">
   <div class="panel">
-    <h2>📖 How to Play</h2>
-    <ul class="howto">
-      <li>🕹️ <b>Joystick</b> (left) — Move</li>
-      <li>🎯 <b>Auto-aim</b> — Targets nearest enemy</li>
-      <li>🔫 <b>Fire button</b> — Hold to shoot</li>
-      <li>💣 <b>Grenade</b> — Throw HE grenade</li>
-      <li>🔄 <b>Reload</b> — Manual reload</li>
-      <li>🔪 <b>Switch</b> — Cycle weapons (Q)</li>
-      <li>🛒 <b>Buy Menu</b> — Press B between rounds to buy weapons</li>
-      <li>💰 <b>Economy</b> — $300/kill · $3250 round win · Loss bonus stacks!</li>
-      <li>☠️ <b>Headshot</b> — 2.5x damage if you hit the head</li>
-      <li>⌨️ <b>PC:</b> WASD · Mouse aim/shoot · R reload · G nade · Q switch · B buy · 1-3 weapon slot</li>
+    <h2>Controls</h2>
+    <ul class="rules">
+      <li><b>Move:</b> Left joystick / WASD</li>
+      <li><b>Aim:</b> Right zone drag / Mouse</li>
+      <li><b>Shoot:</b> Fire button / Left click</li>
+      <li><b>Reload:</b> R key / Reload button</li>
+      <li><b>Grenade:</b> G key / Nade button</li>
+      <li><b>Switch weapon:</b> Q key / Switch button / 1-2-3 keys</li>
+      <li><b>Buy menu:</b> B key (during freeze time)</li>
+      <li><b>Economy:</b> +$300/kill · +$3250 win · Loss bonus stacks</li>
+      <li><b>Headshots:</b> 2.5x damage multiplier</li>
+      <li><b>Objective:</b> Eliminate enemy team (5v5 · MR12)</li>
     </ul>
-    <button class="btn" data-go="screen-menu">← BACK</button>
+    <div class="nav-row"><button class="mbtn" data-go="screen-menu">BACK</button></div>
   </div>
 </section>
 
-<!-- CHAR SELECT -->
 <section id="screen-char" class="screen">
-  <div class="panel wide">
-    <h2>⚔️ Choose Operator</h2>
-    <div id="char-grid" class="grid"></div>
-    <div class="map-actions">
-      <button class="btn btn-ghost" data-go="screen-menu">← BACK</button>
-      <button class="btn btn-big" id="char-next" disabled>SELECT MAP →</button>
+  <div class="panel">
+    <h2>Select Operator</h2>
+    <div id="char-grid" class="cgrid"></div>
+    <div class="nav-row">
+      <button class="mbtn" data-go="screen-menu">BACK</button>
+      <button class="mbtn primary" id="btn-next-map" disabled>SELECT MAP →</button>
     </div>
   </div>
 </section>
 
-<!-- MAP SELECT -->
 <section id="screen-map" class="screen">
-  <div class="panel wide">
-    <h2>🗺️ Choose Map</h2>
-    <div id="map-grid" class="grid"></div>
-    <div class="map-actions">
-      <button class="btn btn-ghost" data-go="screen-char">← BACK</button>
-      <button class="btn btn-big" id="map-start" disabled>⚔️ START MATCH</button>
+  <div class="panel">
+    <h2>Select Map</h2>
+    <div id="map-grid" class="cgrid"></div>
+    <div class="nav-row">
+      <button class="mbtn" data-go="screen-char">BACK</button>
+      <button class="mbtn primary" id="btn-start" disabled>START MATCH</button>
     </div>
   </div>
 </section>
 
-<!-- GAME -->
 <section id="screen-game" class="screen">
   <canvas id="game-canvas"></canvas>
 
-  <div id="hud-top">
-    <div class="hud-team hud-t">T <span id="score-pink">0</span></div>
-    <div class="hud-center">
-      <div id="round-timer">0:55</div>
-      <div id="round-label">Round 1</div>
+  <div class="topbar">
+    <div class="tb-score">
+      <div class="tb-t" id="s-t">0</div>
+      <div class="tb-mid">:</div>
+      <div class="tb-ct" id="s-ct">0</div>
     </div>
-    <div class="hud-team hud-ct"><span id="score-blue">0</span> CT</div>
+    <div class="tb-time" id="timer">0:55</div>
+    <div class="tb-round" id="rlabel">Round 1</div>
   </div>
 
-  <div id="hud-player">
-    <div class="hp-wrap">
-      <span class="hp-icon">❤️</span>
-      <div class="hp-bar"><div id="hp-fill"></div></div>
-      <span id="hp-text">100</span>
-      <span class="armor-icon">🛡️</span>
-      <span id="armor-text">0</span>
+  <canvas class="radar" id="radar"></canvas>
+
+  <div class="hud-bar">
+    <div class="hud-left">
+      <div class="hud-hp"><span class="icon">+</span><span id="hp-val">100</span></div>
+      <div class="hud-armor"><span class="icon">🛡</span><span id="ar-val">0</span></div>
+    </div>
+    <div class="hud-right">
+      <div class="hud-weapon" id="wep-name">Glock-18</div>
+      <div class="hud-ammo-num"><span id="ammo-c">20</span> / <span id="ammo-m">20</span></div>
     </div>
   </div>
+  <div class="hud-money-ig" id="money-ig">$800</div>
 
-  <div id="hud-ammo">
-    <span id="weapon-name">Glock-18</span>
-    <div id="ammo-text"><span id="ammo-cur">20</span>/<span id="ammo-max">20</span></div>
+  <div class="kfeed" id="kfeed"></div>
+  <div class="cmsg" id="cmsg"></div>
+
+  <div class="jzone" id="jzone">
+    <div class="jbase" id="jbase"><div class="jknob" id="jknob"></div></div>
   </div>
+  <div class="azone" id="azone"></div>
 
-  <div id="hud-money"><span id="game-money">💰 $800</span></div>
-
-  <div id="kill-feed"></div>
-  <div id="center-toast"></div>
-
-  <!-- Touch zones -->
-  <div id="joystick-zone" class="touch-zone">
-    <div id="joystick-base"><div id="joystick-knob"></div></div>
+  <div class="actbtns">
+    <button class="abtn" id="btn-switch">🔪</button>
+    <button class="abtn" id="btn-reload">↻</button>
+    <button class="abtn" id="btn-nade">💣<span class="bdg" id="nade-c">1</span></button>
+    <button class="abtn fire" id="btn-fire">⊕</button>
   </div>
-  <div id="aim-zone"></div>
+  <button class="pbtn" id="btn-pause">⏸</button>
 
-  <!-- Action buttons -->
-  <div id="action-buttons">
-    <button id="btn-switch" class="round-btn small">🔪</button>
-    <button id="btn-reload" class="round-btn small">🔄</button>
-    <button id="btn-nade" class="round-btn small">💣<span class="badge" id="nade-count">1</span></button>
-    <button id="btn-fire" class="round-btn fire">🔫</button>
-  </div>
-
-  <button id="btn-pause" class="pause-btn">⏸</button>
-
-  <!-- Buy menu -->
-  <div id="overlay-buy" class="overlay hidden">
-    <div class="result-card wide-card">
-      <h2>🛒 BUY WEAPONS</h2>
-      <p id="buy-money" style="color:var(--gold);font-family:monospace;font-size:18px;">$800</p>
-      <div id="buy-grid"></div>
-      <button class="btn" id="buy-close">CLOSE [B]</button>
+  <!-- Buy overlay -->
+  <div class="ov hid" id="ov-buy">
+    <div class="ocard wide">
+      <h2>BUY WEAPONS</h2>
+      <p id="buy-bal">$800</p>
+      <div class="buygrid" id="buygrid"></div>
+      <button class="mbtn" id="buy-close">CLOSE [B]</button>
     </div>
   </div>
 
-  <!-- Round result -->
-  <div id="overlay-result" class="overlay hidden">
-    <div class="result-card">
-      <h2 id="result-title">ROUND WON</h2>
-      <p id="result-sub"></p>
-      <p id="result-money" class="money-earned"></p>
-      <button class="btn btn-big" id="result-next">NEXT ROUND</button>
-      <button class="btn btn-ghost" data-go="screen-menu" id="result-menu">← MENU</button>
+  <!-- Round end -->
+  <div class="ov hid" id="ov-end">
+    <div class="ocard">
+      <h2 id="end-title">ROUND WON</h2>
+      <p id="end-sub"></p>
+      <p class="money-res" id="end-money"></p>
+      <button class="mbtn primary" id="btn-next-round">NEXT ROUND</button>
+      <button class="mbtn" data-go="screen-menu">QUIT</button>
     </div>
   </div>
 
   <!-- Pause -->
-  <div id="overlay-pause" class="overlay hidden">
-    <div class="result-card">
-      <h2>⏸ PAUSED</h2>
-      <button class="btn btn-big" id="resume">▶ RESUME</button>
-      <button class="btn btn-ghost" data-go="screen-menu">← MENU</button>
+  <div class="ov hid" id="ov-pause">
+    <div class="ocard">
+      <h2>PAUSED</h2>
+      <button class="mbtn primary" id="btn-resume">RESUME</button>
+      <button class="mbtn" data-go="screen-menu">QUIT</button>
     </div>
   </div>
 </section>
